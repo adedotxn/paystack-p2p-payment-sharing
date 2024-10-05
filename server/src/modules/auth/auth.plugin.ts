@@ -12,12 +12,12 @@ export const authPlugin = new Elysia({ prefix: "/auth" })
       `client_id=${Environments.GOOGLE_CLIENT_ID}` +
       `&redirect_uri=${Environments.GOOGLE_REDIRECT_URI}` +
       `&response_type=code` +
-      `&scope=https://www.googleapis.com/auth/userinfo.profile` +
+      `&scope=https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email` +
       `&access_type=offline`;
 
     return { redirect: authUrl };
   })
-  .get("/google/callback", async ({ query, error, cookie, headers }) => {
+  .get("/google/callback", async ({ query, error, cookie }) => {
     const { code } = query;
 
     const body = {
@@ -39,12 +39,13 @@ export const authPlugin = new Elysia({ prefix: "/auth" })
 
       const tokenData = await tokenResponse.json();
 
+      console.log("TokenData", tokenData);
+
       if (!tokenResponse.ok) {
         console.error(`Error exchanging code for tokens: ${tokenData.error}`);
-        error(500);
+        return error(500, { status: false, message: tokenData.error });
       }
 
-      console.log({ tokenData });
       const { access_token, refresh_token, expires_in, id_token } = tokenData;
 
       const userInfoResponse = await fetch(
@@ -56,14 +57,29 @@ export const authPlugin = new Elysia({ prefix: "/auth" })
         },
       );
 
-      const google_user = await userInfoResponse.json();
+      const google_user = (await userInfoResponse.json()) as {
+        id: string;
+        name: string;
+        given_name: string;
+        family_name: string;
+        picture: string;
+        email: string;
+      };
 
-      let user = await prisma.user.findUnique({
+      console.log("Userinfo", google_user);
+      if (!google_user) {
+        return error(400, {
+          status: false,
+          message: "Issue with Google User Info",
+        });
+      }
+
+      const existingUser = await prisma.user.findUnique({
         where: { email: google_user.email },
       });
 
-      if (!user) {
-        user = await prisma.user.create({
+      if (!existingUser) {
+        const user = await prisma.user.create({
           data: {
             email: google_user.email,
             name: google_user.name,
@@ -99,7 +115,7 @@ export const authPlugin = new Elysia({ prefix: "/auth" })
       cookie.access_token.path = "/";
       cookie.refresh_token.path = "/";
 
-      return { user: { name: user?.name, email: user?.email } };
+      return { user: { name: google_user.name, email: google_user.email } };
     } catch (e) {
       console.error("Error:", e);
       if (e instanceof Error) {

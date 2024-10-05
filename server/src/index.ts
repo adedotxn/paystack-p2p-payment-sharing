@@ -2,6 +2,8 @@ import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { cors } from "@elysiajs/cors";
 import { authPlugin } from "./modules/auth/auth.plugin";
+import { billsPlugin } from "./modules/bills/bills.plugin";
+import { userPlugin } from "./modules/user/user.plugin";
 
 const app = new Elysia()
   .use(swagger())
@@ -11,7 +13,8 @@ const app = new Elysia()
     }),
   )
   .use(authPlugin)
-  .get("/", () => "Hello Elysia")
+  .use(userPlugin)
+  .use(billsPlugin)
   .listen(5000);
 
 console.log(

@@ -31,7 +31,12 @@ export const userPlugin = new Elysia({ prefix: "/user" })
         // Fetch bills the user owns or is a member of
         const ownedBills = await prisma.bill.findMany({
           where: { ownerId: user.user.id },
-          include: { members: true },
+          include: {
+            owner: true,
+            members: {
+              include: { user: true, payments: true },
+            },
+          },
         });
 
         const memberOfBills = await prisma.bill.findMany({
@@ -42,7 +47,15 @@ export const userPlugin = new Elysia({ prefix: "/user" })
               },
             },
           },
-          include: { members: true },
+          include: {
+            owner: true,
+            members: {
+              include: {
+                user: true,
+                payments: true,
+              },
+            },
+          },
         });
 
         let allBills = [...ownedBills, ...memberOfBills];
@@ -56,7 +69,21 @@ export const userPlugin = new Elysia({ prefix: "/user" })
           allBills = allBills.slice(0, limit);
         }
 
-        return { status: true, data: allBills };
+        const billsWithPaymentStatus = allBills.map((bill) => {
+          const paidMembers = bill.members.filter(
+            (member) => member.paidAmount >= member.assignedAmount,
+          );
+          const unpaidMembers = bill.members.filter(
+            (member) => member.paidAmount < member.assignedAmount,
+          );
+          return {
+            ...bill,
+            paidMembers,
+            unpaidMembers,
+          };
+        });
+
+        return { status: true, data: billsWithPaymentStatus };
       } catch (e) {
         if (e instanceof Error) {
           error(400, { status: false, message: e.message });

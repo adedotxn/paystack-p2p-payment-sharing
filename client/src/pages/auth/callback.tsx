@@ -11,7 +11,7 @@ export default function AuthCallback() {
 
   useEffect(() => {
     if (!data.error && data.user?.name) {
-      navigate("/bills");
+      navigate("/dashboard");
     }
   }, [data.error]);
 

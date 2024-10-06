@@ -139,16 +139,27 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
     "/invite",
     async ({ body, error }) => {
       // SEND BILL INVITE TO ANOTHER USER
-      const { email, billId } = body;
+      const { email, billId, assignedAmount } = body;
 
       try {
+        const invitedUserExists = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (!invitedUserExists) {
+          return error(404, {
+            status: false,
+            message: "User being invited does not exist",
+          });
+        }
+
         const bill = await prisma.bill.findUnique({
           where: { id: billId },
-          include: { owner: true },
+          include: { owner: true, members: true, invitations: true },
         });
 
         if (!bill) {
-          return error(404, "Bill not found");
+          return error(404, { status: false, messae: "Bill not found" });
         }
 
         const existingInvite = await prisma.invitation.findUnique({
@@ -167,6 +178,7 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
             email,
             billId,
             status: "PENDING",
+            assignedAmount,
           },
         });
 
@@ -181,6 +193,7 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
       body: t.Object({
         email: t.String(),
         billId: t.Number(),
+        assignedAmount: t.Number(),
       }),
     },
   )
@@ -198,7 +211,7 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
       try {
         const invitation = await prisma.invitation.findUnique({
           where: { id: invitationId },
-          include: { bill: true },
+          include: { bill: { include: { members: true } } },
         });
 
         if (!invitation || invitation.status !== "PENDING") {
@@ -208,11 +221,6 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
           });
         }
 
-        await prisma.invitation.update({
-          where: { id: invitationId },
-          data: { status: "ACCEPTED" },
-        });
-
         const user = await prisma.user.findUnique({
           where: { email: invitation.email },
         });
@@ -221,12 +229,34 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
           return error(404, { status: false, message: "User not found" });
         }
 
+        const totalAssignedAmount = invitation.bill.members.reduce(
+          (sum, member) => sum + member.assignedAmount,
+          0,
+        );
+
+        const remainingAmount =
+          invitation.bill.totalAmount - totalAssignedAmount;
+
+        if (invitation.assignedAmount > remainingAmount) {
+          return error(400, {
+            status: false,
+            message: `Assigned amount exceeds the remaining balance of ${remainingAmount}.`,
+          });
+        }
+
         await prisma.billMember.create({
           data: {
             userId: user.id,
             billId: invitation.billId,
             role: "MEMBER",
+            assignedAmount: invitation.assignedAmount,
+            paidAmount: 0,
           },
+        });
+
+        await prisma.invitation.update({
+          where: { id: invitationId },
+          data: { status: "ACCEPTED" },
         });
 
         return {

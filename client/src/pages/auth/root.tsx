@@ -30,7 +30,7 @@ export default function Root() {
             <DollarSign className="h-12 w-12 text-purple-600" />
           </div>
           <CardTitle className="text-2xl font-bold text-center">
-            Welcome to BillShare
+            Welcome to PayShare
           </CardTitle>
           <CardDescription className="text-center">
             Sign in to your account or create a new one

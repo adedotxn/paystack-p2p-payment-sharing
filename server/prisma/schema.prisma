@@ -54,41 +54,47 @@ model Bill {
 }
 
 model BillMember {
-  id       Int        @id @default(autoincrement())
-  userId   Int
-  billId   Int
-  role     MemberRole @default(MEMBER)
-  joinedAt DateTime   @default(now())
-  user     User       @relation(fields: [userId], references: [id])
-  bill     Bill       @relation(fields: [billId], references: [id])
+  id             Int        @id @default(autoincrement())
+  userId         Int
+  billId         Int
+  role           MemberRole @default(MEMBER)
+  joinedAt       DateTime   @default(now())
+  assignedAmount Int
+  paidAmount     Int
+  user           User       @relation(fields: [userId], references: [id])
+  bill           Bill       @relation(fields: [billId], references: [id])
+  payments       Payment[]  @relation("MemberPayments")
 
   @@unique([userId, billId])
 }
 
 model Invitation {
-  id          Int              @id @default(autoincrement())
-  email       String
-  billId      Int
-  status      InvitationStatus @default(PENDING)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  bill        Bill             @relation(fields: [billId], references: [id])
-  invitedUser User?            @relation(fields: [email], references: [email])
+  id             Int              @id @default(autoincrement())
+  email          String
+  billId         Int
+  status         InvitationStatus @default(PENDING)
+  assignedAmount Int
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  bill           Bill             @relation(fields: [billId], references: [id])
+  invitedUser    User?            @relation(fields: [email], references: [email])
 
   @@unique([email, billId])
 }
 
 model Payment {
-  id          Int           @id @default(autoincrement())
-  amount      Int
-  status      PaymentStatus @default(PENDING)
-  paystackRef String        @unique
-  userId      Int
-  billId      Int
-  user        User          @relation(fields: [userId], references: [id])
-  bill        Bill          @relation(fields: [billId], references: [id])
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id           Int           @id @default(autoincrement())
+  amount       Int
+  status       PaymentStatus @default(PENDING)
+  paystackRef  String        @unique
+  userId       Int
+  billId       Int
+  billMemberId Int
+  user         User          @relation(fields: [userId], references: [id])
+  bill         Bill          @relation(fields: [billId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  billMember   BillMember    @relation("MemberPayments", fields: [billMemberId], references: [id])
 }
 
 enum BillStatus {

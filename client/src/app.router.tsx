@@ -1,9 +1,8 @@
 import { createBrowserRouter } from "react-router-dom";
 import Root from "./pages/auth/root.tsx"; // Ensure this import is correct
-import AuthCallback, {
-  loader as AuthCallbackLoader,
-} from "./pages/auth/callback.tsx";
+import AuthCallback from "./pages/auth/callback.tsx";
 import Dashboard from "./pages/bill/root.tsx";
+import { AuthCallbackLoader } from "./pages/auth/callback.loader.ts";
 
 const router = createBrowserRouter([
   {

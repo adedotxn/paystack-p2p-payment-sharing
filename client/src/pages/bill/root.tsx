@@ -1,4 +1,4 @@
-import { Bell, Plus, DollarSign, ChevronRight, Menu } from "lucide-react";
+import { Bell, DollarSign, ChevronRight, Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,8 +12,70 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { CreateBillDialog } from "@/components/bills/create-bill-dialog";
 
 export default function Dashboard() {
+  const bills = useQuery<{
+    status: boolean;
+    data: {
+      id: number;
+      title: string;
+      slug: string;
+      description: string;
+      totalAmount: number;
+      currentAmount: number;
+      status: string;
+      createdAt: string;
+      updatedAt: string;
+      currency: string;
+      ownerId: number;
+      members: unknown[];
+    }[];
+  }>({
+    queryKey: ["/user/bills"],
+    queryFn: async () => {
+      try {
+        const resp = await fetch(`http://localhost:5000/user/bills?limit=3`, {
+          credentials: "include",
+        });
+
+        const data = await resp.json();
+
+        console.log("billsss", data);
+        return data;
+      } catch (e) {
+        if (e instanceof Error) throw new Error(e.message);
+      }
+    },
+  });
+
+  const recentBills = bills.data?.data ?? [];
+
+  const activeBills = useQuery<{
+    status: true;
+    data: [];
+  }>({
+    queryKey: ["/user/bills/active"],
+    queryFn: async () => {
+      try {
+        const resp = await fetch(`http://localhost:5000/user/bills/active`, {
+          credentials: "include",
+        });
+
+        const data = await resp.json();
+
+        console.log("billsss", data);
+        return data;
+      } catch (e) {
+        if (e instanceof Error) throw new Error(e.message);
+      }
+    },
+  });
+
+  console.log("allbills", bills.data);
+  console.log("activebills", activeBills.data);
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
       <header className="bg-white shadow-sm">
@@ -83,9 +145,7 @@ export default function Dashboard() {
                   <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                  <Button className="w-full">
-                    <Plus className="mr-2 h-4 w-4" /> Create New Bill
-                  </Button>
+                  <CreateBillDialog />
                   <Button variant="outline" className="w-full">
                     <DollarSign className="mr-2 h-4 w-4" /> Settle Payments
                   </Button>
@@ -117,7 +177,9 @@ export default function Dashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-purple-600">4</div>
+                  <div className="text-3xl font-bold text-purple-600">
+                    {activeBills.data?.data.length ?? "-1"}
+                  </div>
                   <p className="text-sm text-gray-500 mt-1">
                     Bills requiring action
                   </p>
@@ -133,81 +195,38 @@ export default function Dashboard() {
             <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">
               Recent Bills
             </h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Dinner at Olive Garden</CardTitle>
-                  <CardDescription>
-                    Created by Sarah • 2 days ago
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-500">
-                      Total: $120.00
-                    </span>
-                    <Badge>In Progress</Badge>
-                  </div>
-                  <Progress value={66} className="w-full" />
-                  <p className="text-sm text-gray-500 mt-2">
-                    4/6 people have paid
-                  </p>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="outline" className="w-full">
-                    View Details
-                  </Button>
-                </CardFooter>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Weekend Getaway</CardTitle>
-                  <CardDescription>Created by You • 1 week ago</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-500">
-                      Total: $850.00
-                    </span>
-                    <Badge variant="outline">Completed</Badge>
-                  </div>
-                  <Progress value={100} className="w-full" />
-                  <p className="text-sm text-gray-500 mt-2">
-                    All 5 people have paid
-                  </p>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="outline" className="w-full">
-                    View Details
-                  </Button>
-                </CardFooter>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Monthly Utilities</CardTitle>
-                  <CardDescription>
-                    Created by Alex • 3 days ago
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-500">
-                      Total: $210.50
-                    </span>
-                    <Badge variant="destructive">Action Needed</Badge>
-                  </div>
-                  <Progress value={33} className="w-full" />
-                  <p className="text-sm text-gray-500 mt-2">
-                    1/3 people have paid
-                  </p>
-                </CardContent>
-                <CardFooter>
-                  <Button className="w-full">Pay Now</Button>
-                </CardFooter>
-              </Card>
-            </div>
+            {recentBills.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {recentBills.map((bill) => (
+                  <Card key={bill.id}>
+                    <CardHeader>
+                      <CardTitle>{bill.title}</CardTitle>
+                      <CardDescription>
+                        Created by Sarah • 2 days ago
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-500">
+                          Total: {bill.currency}
+                          {bill.currentAmount}
+                        </span>
+                        <Badge>{bill.status}</Badge>
+                      </div>
+                      <Progress value={66} className="w-full" />
+                      <p className="text-sm text-gray-500 mt-2">
+                        4/6 people have paid
+                      </p>
+                    </CardContent>
+                    <CardFooter>
+                      <Button variant="outline" className="w-full">
+                        View Details
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            ) : null}
 
             <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">
               Recent Activity

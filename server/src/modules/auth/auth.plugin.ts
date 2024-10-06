@@ -78,8 +78,20 @@ export const authPlugin = new Elysia({ prefix: "/auth" })
         where: { email: google_user.email },
       });
 
+      if (existingUser) {
+        await prisma.userVerification.update({
+          where: { googleId: google_user.id },
+          data: {
+            accessToken: access_token,
+            refreshToken: refresh_token,
+            expiresIn: expires_in,
+            updatedAt: new Date(),
+          },
+        });
+      }
+
       if (!existingUser) {
-        const user = await prisma.user.create({
+        await prisma.user.create({
           data: {
             email: google_user.email,
             name: google_user.name,
@@ -109,11 +121,17 @@ export const authPlugin = new Elysia({ prefix: "/auth" })
       cookie.access_token.maxAge = expires_in;
       cookie.refresh_token.maxAge = 60 * 60 * 24 * 30; // 30 days
 
-      cookie.access_tokem.secure = true;
-      cookie.refresh_token.secure = true;
+      // cookie.access_tokem.secure = true;
+      // cookie.refresh_token.secure = true;
 
       cookie.access_token.path = "/";
       cookie.refresh_token.path = "/";
+
+      cookie.access_token.domain = "localhost";
+      cookie.refresh_token.domain = "localhost";
+
+      // cookie.access_token.sameSite = "lax";
+      // cookie.refresh_token.sameSite = "lax";
 
       return { user: { name: google_user.name, email: google_user.email } };
     } catch (e) {

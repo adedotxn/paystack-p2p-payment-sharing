@@ -4,50 +4,106 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 export const userPlugin = new Elysia({ prefix: "/user" })
-  .get("/bills", async ({ cookie, error }) => {
-    const access_token = cookie.access_token.value;
+  .get(
+    "/bills",
+    async ({ cookie, error, query }) => {
+      const access_token = cookie.access_token.value;
 
-    if (!access_token) {
-      return error(401, { status: false, message: "User not authenticated" });
-    }
-
-    try {
-      const user = await prisma.userVerification.findUnique({
-        where: { accessToken: access_token },
-        include: { user: true },
-      });
-
-      if (!user) {
+      if (!access_token) {
         return error(401, { status: false, message: "User not authenticated" });
       }
 
-      // Fetch bills the user owns or is a member of
-      const ownedBills = await prisma.bill.findMany({
-        where: { ownerId: user.user.id },
-        include: { members: true },
-      });
+      try {
+        const user = await prisma.userVerification.findUnique({
+          where: { accessToken: access_token },
+          include: { user: true },
+        });
 
-      const memberOfBills = await prisma.bill.findMany({
-        where: {
-          members: {
-            some: {
-              userId: user.user.id,
+        if (!user) {
+          return error(401, {
+            status: false,
+            message: "User not authenticated",
+          });
+        }
+
+        const limit = query.limit ? parseInt(query.limit) : null;
+
+        // Fetch bills the user owns or is a member of
+        const ownedBills = await prisma.bill.findMany({
+          where: { ownerId: user.user.id },
+          include: { members: true },
+        });
+
+        const memberOfBills = await prisma.bill.findMany({
+          where: {
+            members: {
+              some: {
+                userId: user.user.id,
+              },
             },
           },
-        },
-        include: { members: true },
-      });
+          include: { members: true },
+        });
 
-      // Combine owned and member bills
-      const allBills = [...ownedBills, ...memberOfBills];
+        let allBills = [...ownedBills, ...memberOfBills];
 
-      return { status: true, bills: allBills };
-    } catch (e) {
-      if (e instanceof Error) {
-        error(400, { status: false, message: e.message });
+        allBills.sort(
+          (a, b) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        );
+
+        if (limit) {
+          allBills = allBills.slice(0, limit);
+        }
+
+        return { status: true, data: allBills };
+      } catch (e) {
+        if (e instanceof Error) {
+          error(400, { status: false, message: e.message });
+        }
       }
-    }
-  })
+    },
+    {
+      // response: {
+      //   200: t.Object({
+      //     status: t.Boolean(),
+      //     data: t.Array(
+      //       t.Object({
+      //         id: t.Number(),
+      //         title: t.String(),
+      //         slug: t.String(),
+      //         description: t.String(),
+      //         totalAmount: t.Number(),
+      //         currentAmount: t.Number(),
+      //         createdAt: t.String(),
+      //         updatedAt: t.String(),
+      //         currency: t.String(),
+      //         ownerId: t.Number(),
+      //         members: t.Array(t.Object({ userId: t.Number() })),
+      //       }),
+      //     ),
+      //   }),
+      //   400: t.Object({
+      //     status: t.Boolean(),
+      //     message: t.String(),
+      //   }),
+      //   401: t.Object({
+      //     status: t.Boolean(),
+      //     message: t.String(),
+      //   }),
+      //   500: t.Object({
+      //     status: t.Boolean(),
+      //     message: t.String(),
+      //   }),
+      // },
+      cookie: t.Cookie({
+        access_token: t.String(),
+      }),
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+    },
+  )
   .get("/bills/active", async ({ cookie, error }) => {
     const access_token = cookie.access_token.value;
 
@@ -91,7 +147,7 @@ export const userPlugin = new Elysia({ prefix: "/user" })
 
       const allActiveBills = [...ownedActiveBills, ...memberOfActiveBills];
 
-      return { status: true, activeBills: allActiveBills };
+      return { status: true, data: allActiveBills };
     } catch (e) {
       if (e instanceof Error) {
         error(400, { status: false, message: e.message });

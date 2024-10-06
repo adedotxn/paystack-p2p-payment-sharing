@@ -8,18 +8,22 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
     "/",
     async ({ body, cookie, error }) => {
       // CREATE A BILL
-      // if (!cookie.access_token.value) {
-      //   error(401);
-      // }
+      if (!cookie.access_token.value) {
+        error(401);
+      }
 
       try {
-        // const billCreator = await prisma.userVerification.findUnique({
-        //   where: { accessToken: cookie.access_token.value },
-        // });
+        const billCreator = await prisma.userVerification.findUnique({
+          where: { accessToken: cookie.access_token.value },
+        });
 
-        // if (!billCreator) {
-        //   error(404, "User not found");
-        // }
+        console.log("billcreator", billCreator);
+
+        if (!billCreator) {
+          error(404, "User not found");
+        }
+
+        console.log(body);
 
         const res = await fetch("https://api.paystack.co/page", {
           method: "POST",
@@ -64,7 +68,9 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
             message: paystackPageResponse.message,
           });
         }
+        console.log("paystack respoNse", paystackPageResponse);
 
+        console.log("starting prisma");
         const createdBill = await prisma.bill.create({
           data: {
             title: paystackPageResponse.data.name,
@@ -75,7 +81,7 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
             status: "OPEN",
             currency: paystackPageResponse.data.currency,
             owner: {
-              connect: { id: 3 },
+              connect: { id: billCreator?.id },
             },
             members: {
               create: [],
@@ -86,7 +92,8 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
           },
         });
 
-        return { status: true, data: paystackPageResponse };
+        console.log("created bill", createdBill);
+        return { status: true, data: createdBill };
       } catch (e) {
         if (e instanceof Error) {
           error(400, { status: false, message: e.message });

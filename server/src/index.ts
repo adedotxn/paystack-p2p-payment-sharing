@@ -9,6 +9,7 @@ const app = new Elysia()
   .use(swagger())
   .use(
     cors({
+      origin: "http://localhost:5173",
       credentials: true,
     }),
   )

@@ -46,6 +46,12 @@ const formSchema = z.object({
     message: "Amount must be greater than 200 Naira.",
   }),
   description: z.string().optional(),
+  assignedCreatorAmount: z
+    .number()
+    .min(100, {
+      message: "Assigned creator split must be > 100",
+    })
+    .optional(),
 });
 
 export function CreateBillDialog() {
@@ -109,6 +115,7 @@ function CreateBillForm(props: { onSuccess: () => void }) {
       name: "",
       amount: 0,
       description: "",
+      assignedCreatorAmount: 100,
     },
   });
   const queryClient = new QueryClient();
@@ -216,6 +223,30 @@ function CreateBillForm(props: { onSuccess: () => void }) {
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="assignedCreatorAmount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Your split of the bill</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="Enter amount"
+                  {...field}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                />
+              </FormControl>
+              <FormDescription>
+                Provide the amount to be assigned to you for this bill (minimum
+                100 Naira).
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? "Creating.." : "Create Bill"}{" "}
         </Button>

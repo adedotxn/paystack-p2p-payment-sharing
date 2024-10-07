@@ -12,18 +12,28 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
         error(401);
       }
 
+      if (body.assignedCreatorAmount < 100) {
+        return error(400, {
+          status: false,
+          message: "Assigned amount should be > 100",
+        });
+      }
+
+      if (body.amount < 100) {
+        return error(400, {
+          status: false,
+          message: "Assigned amount should be > 100",
+        });
+      }
+
       try {
         const billCreator = await prisma.userVerification.findUnique({
           where: { accessToken: cookie.access_token.value },
         });
 
-        console.log("billcreator", billCreator);
-
         if (!billCreator) {
           error(404, "User not found");
         }
-
-        console.log(body);
 
         const res = await fetch("https://api.paystack.co/page", {
           method: "POST",
@@ -68,9 +78,7 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
             message: paystackPageResponse.message,
           });
         }
-        console.log("paystack respoNse", paystackPageResponse);
 
-        console.log("starting prisma");
         const createdBill = await prisma.bill.create({
           data: {
             title: paystackPageResponse.data.name,
@@ -92,7 +100,25 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
           },
         });
 
-        console.log("created bill", createdBill);
+        if (!createdBill) {
+          return error(500, {
+            status: false,
+            message: "An error occured while creating bill",
+          });
+        }
+
+        if (createdBill) {
+          await prisma.billMember.create({
+            data: {
+              userId: createdBill.ownerId,
+              billId: createdBill.id,
+              role: "OWNER",
+              assignedAmount: body.assignedCreatorAmount,
+              paidAmount: 0,
+            },
+          });
+        }
+
         return { status: true, data: createdBill };
       } catch (e) {
         if (e instanceof Error) {
@@ -105,6 +131,7 @@ export const billsPlugin = new Elysia({ prefix: "/bill" })
         name: t.String(),
         amount: t.Number(),
         description: t.String(),
+        assignedCreatorAmount: t.Number(),
       }),
     },
   )

@@ -6,6 +6,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export default function NotificationsPopover() {
   const queryClient = new QueryClient();
@@ -98,7 +99,6 @@ export default function NotificationsPopover() {
           queryKey: ["/user/bills"],
         });
       }
-      props.onSuccess();
     },
   });
 
@@ -130,12 +130,11 @@ export default function NotificationsPopover() {
                     </div>
                     <div>
                       <Button
-                        variant="primary"
                         size="sm"
                         onClick={() => {
                           mutation.mutate({ invitationId: invite.id });
                         }}
-                        disabled={mutation.isLoading}
+                        disabled={mutation.isPending}
                       >
                         {mutation.isPending ? "Accepting..." : "Accept"}
                       </Button>

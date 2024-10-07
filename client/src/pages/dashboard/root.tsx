@@ -1,4 +1,4 @@
-import { Bell, DollarSign, ChevronRight, Menu } from "lucide-react";
+import { DollarSign, ChevronRight, Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {

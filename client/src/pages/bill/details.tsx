@@ -1,25 +1,14 @@
-import React, { useState } from "react";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Link, useLoaderData } from "react-router-dom";
 import dayjs from "dayjs";
 import localizedFormat from "dayjs/plugin/localizedFormat";
+import { InviteMemberDialog } from "@/components/bills/invite-member-dialog";
 
 dayjs.extend(localizedFormat);
 
@@ -40,7 +29,23 @@ export default function BillDetailPage() {
         updatedAt: string;
         currency: string;
         ownerId: number;
-        members: unknown[];
+        members: {
+          id: number;
+          userId: number;
+          billId: number;
+          role: string;
+          joinedAt: string;
+          assignedAmount: number;
+          paidAmount: number;
+          user: {
+            id: number;
+            email: string;
+            name: string;
+            picture: string;
+            createdAt: string;
+            updatedAt: string;
+          };
+        }[];
         owner: {
           id: number;
           email: string;
@@ -49,16 +54,21 @@ export default function BillDetailPage() {
           createdAt: string;
           updatedAt: string;
         };
-        invitations: unknown[];
+        invitations: {
+          id: number;
+          email: string;
+          billId: number;
+          status: string;
+          assignedAmount: number;
+          createdAt: string;
+          updatedAt: string;
+        }[];
         payments: unknown[];
       };
     };
   };
 
   console.log("loaderData", loaderData);
-
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
   const billDetails = {
     id: 1,
@@ -76,14 +86,6 @@ export default function BillDetailPage() {
     status: "In Progress",
     date: "June 15, 2023",
     description: "Team dinner after the project completion",
-  };
-
-  const handleInvite = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would typically send the invite via your backend
-    console.log(`Invite sent to ${inviteEmail}`);
-    setInviteEmail("");
-    setIsInviteDialogOpen(false);
   };
 
   if (loaderData.error) {
@@ -136,11 +138,13 @@ export default function BillDetailPage() {
                 Total: {billDetailss.currency} {billDetailss.totalAmount}
               </span>
               <span className="text-sm font-medium">
-                Paid: ${billDetails.paid.toFixed(2)}
+                Paid: {billDetailss.currency} {billDetailss.currentAmount}
               </span>
             </div>
             <Progress
-              value={(billDetails.paid / billDetails.total) * 100}
+              value={
+                (billDetailss.currentAmount / billDetailss.totalAmount) * 100
+              }
               className="w-full mb-4"
             />
 
@@ -152,23 +156,28 @@ export default function BillDetailPage() {
                 </TabsList>
                 <TabsContent value="members">
                   <div className="space-y-4">
-                    {billDetails.members.map((member, index) => (
+                    {billDetailss.members.map((member, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between"
                       >
                         <div className="flex items-center">
                           <Avatar className="h-10 w-10">
-                            <AvatarFallback>{member.name[0]}</AvatarFallback>
+                            <AvatarFallback>
+                              {member.user.name[0]}
+                            </AvatarFallback>
                           </Avatar>
                           <div className="ml-4">
-                            <p className="text-sm font-medium">{member.name}</p>
+                            <p className="text-sm font-medium">
+                              {member.user.name}
+                              {member.role === "OWNER" ? " (Me)" : ""}
+                            </p>
                             <p className="text-sm text-gray-500">
-                              ${member.amount.toFixed(2)}
+                              {billDetailss.currency} {member.assignedAmount}
                             </p>
                           </div>
                         </div>
-                        {member.paid ? (
+                        {member.paidAmount === member.assignedAmount ? (
                           <Badge variant="outline" className="bg-green-50">
                             Paid
                           </Badge>
@@ -226,44 +235,7 @@ export default function BillDetailPage() {
             </CardHeader>
             <CardContent className="space-y-2">
               <Button className="w-full">Make Payment</Button>
-              <Dialog
-                open={isInviteDialogOpen}
-                onOpenChange={setIsInviteDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full">
-                    <Plus className="mr-2 h-4 w-4" /> Invite Member
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Invite a new member</DialogTitle>
-                    <DialogDescription>
-                      Enter the email address of the person you'd like to invite
-                      to this bill.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleInvite}>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="email" className="text-right">
-                          Email
-                        </Label>
-                        <Input
-                          id="email"
-                          value={inviteEmail}
-                          onChange={(e) => setInviteEmail(e.target.value)}
-                          placeholder="example@email.com"
-                          className="col-span-3"
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button type="submit">Send Invite</Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <InviteMemberDialog />
               <Button variant="outline" className="w-full">
                 Close Bill
               </Button>

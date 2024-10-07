@@ -37,6 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMediaQuery } from "@/utils/useMediaQuery";
 import { QueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getFormattedDate } from "@/utils/getFormattedDate";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -175,6 +176,13 @@ function CreateBillForm(props: { onSuccess: () => void }) {
               <FormControl>
                 <Input placeholder="Enter bill name" {...field} />
               </FormControl>
+              <Button
+                type="button"
+                onClick={() => form.setValue("name", getFormattedDate())}
+                className="mt-2"
+              >
+                Auto-fill with current date and time
+              </Button>
               <FormDescription>
                 Give your bill a descriptive name.
               </FormDescription>

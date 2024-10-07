@@ -17,6 +17,7 @@ import { CreateBillDialog } from "@/components/bills/create-bill-dialog";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { Link } from "react-router-dom";
+import NotificationsPopover from "@/components/dashboard/notifications-popover";
 
 dayjs.extend(relativeTime);
 
@@ -57,7 +58,6 @@ export default function Dashboard() {
 
         const data = await resp.json();
 
-        console.log("billsss", data);
         return data;
       } catch (e) {
         if (e instanceof Error) throw new Error(e.message);
@@ -80,16 +80,12 @@ export default function Dashboard() {
 
         const data = await resp.json();
 
-        console.log("billsss", data);
         return data;
       } catch (e) {
         if (e instanceof Error) throw new Error(e.message);
       }
     },
   });
-
-  console.log("allbills", bills.data);
-  console.log("activebills", activeBills.data);
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
@@ -132,10 +128,7 @@ export default function Dashboard() {
               </a>
             </nav>
             <div className="hidden md:flex items-center justify-end md:flex-1 lg:w-0">
-              <Button variant="ghost" size="icon" className="ml-4 relative">
-                <Bell className="h-6 w-6" />
-                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white" />
-              </Button>
+              <NotificationsPopover />
               <Avatar className="ml-4">
                 <AvatarImage
                   src="https://github.com/shadcn.png"
@@ -253,7 +246,14 @@ export default function Dashboard() {
                   </Card>
                 ))}
               </div>
-            ) : null}
+            ) : (
+              <div>
+                <p>
+                  {" "}
+                  No recent bills found. Create a new bill to get started :){" "}
+                </p>
+              </div>
+            )}
 
             <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">
               Recent Activity

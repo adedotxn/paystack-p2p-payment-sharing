@@ -6,6 +6,9 @@ import Dashboard from "./pages/dashboard/root.tsx";
 import BillsPage from "./pages/bill/root.tsx";
 import BillDetailPage from "./pages/bill/details.tsx";
 import { BillDetailsLoader } from "./pages/bill/details.loader.ts";
+import { QueryClient } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
 
 const router = createBrowserRouter([
   {
@@ -27,7 +30,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/bills/:billId",
-    loader: BillDetailsLoader,
+    loader: BillDetailsLoader(queryClient),
     element: <BillDetailPage />,
   },
 ]);

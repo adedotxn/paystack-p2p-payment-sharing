@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link, useLoaderData } from "react-router-dom";
+import { Link, useLoaderData, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import localizedFormat from "dayjs/plugin/localizedFormat";
 import InviteMemberDialog from "@/components/bills/invite-member-dialog";
@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import SettleBillDialog from "@/components/bills/settle-bill-dialog";
 import { Environments } from "@/utils/config/enviroments.config";
+import { billDetailsQuery } from "./details.loader";
 
 dayjs.extend(localizedFormat);
 
@@ -43,7 +44,6 @@ export default function BillDetailPage() {
   });
 
   const user = profile.data?.data;
-  console.log(user);
 
   const loaderData = useLoaderData() as {
     error: boolean;
@@ -110,6 +110,14 @@ export default function BillDetailPage() {
       };
     };
   };
+
+  const params = useParams();
+  const { data: billDetails } = useQuery({
+    ...billDetailsQuery(params.billId),
+    initialData: loaderData,
+  });
+
+  console.log("billDetails", billDetails);
 
   if (loaderData.error) {
     return (
@@ -218,50 +226,64 @@ export default function BillDetailPage() {
                 </TabsContent>
                 <TabsContent value="invitations">
                   <div className="space-y-4">
-                    {billDetailss.invitations.map((invited, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center">
-                          <Avatar className="h-10 w-10">
-                            <AvatarFallback>{invited.email[0]}</AvatarFallback>
-                          </Avatar>
-                          <div className="ml-4">
-                            <p className="text-sm font-medium">
-                              {invited.email} --{" "}
-                              <span className="text-xs">
-                                NGN {invited.assignedAmount}
-                              </span>
-                            </p>
+                    {billDetailss.invitations.length > 0 ? (
+                      billDetailss.invitations.map((invited, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center">
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback>
+                                {invited.email[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="ml-4">
+                              <p className="text-sm font-medium">
+                                {invited.email} --{" "}
+                                <span className="text-xs">
+                                  NGN {invited.assignedAmount}
+                                </span>
+                              </p>
 
-                            <p className="text-xs text-gray-500">
-                              Invited{" "}
-                              {dayjs().from(dayjs(invited.createdAt), true)} ago
-                            </p>
+                              <p className="text-xs text-gray-500">
+                                Invited{" "}
+                                {dayjs().from(dayjs(invited.createdAt), true)}{" "}
+                                ago
+                              </p>
+                            </div>
                           </div>
+                          <span className="text-sm font-medium">
+                            {invited.status === "PENDING" && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-yellow-50"
+                              >
+                                {invited.status}
+                              </Badge>
+                            )}
+
+                            {invited.status === "ACCEPTED" && (
+                              <Badge variant="outline" className="bg-green-50">
+                                {invited.status}
+                              </Badge>
+                            )}
+
+                            {invited.status === "REJECTED" && (
+                              <Badge variant="outline" className="bg-red-50">
+                                {invited.status}
+                              </Badge>
+                            )}
+                          </span>
                         </div>
-                        <span className="text-sm font-medium">
-                          {invited.status === "PENDING" && (
-                            <Badge variant="secondary" className="bg-yellow-50">
-                              {invited.status}
-                            </Badge>
-                          )}
-
-                          {invited.status === "ACCEPTED" && (
-                            <Badge variant="outline" className="bg-green-50">
-                              {invited.status}
-                            </Badge>
-                          )}
-
-                          {invited.status === "REJECTED" && (
-                            <Badge variant="outline" className="bg-red-50">
-                              {invited.status}
-                            </Badge>
-                          )}
-                        </span>
+                      ))
+                    ) : (
+                      <div>
+                        <p className="text-xs text-gray-500 grid place-items-center">
+                          No invitation has been sent for this bill yet
+                        </p>{" "}
                       </div>
-                    ))}
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -301,7 +323,7 @@ export default function BillDetailPage() {
                   className="w-full"
                   onClick={() =>
                     toast.error(
-                      "Please settle all payments attempting to settle the bill",
+                      "Please complete all payments before attempting to settle the bill",
                     )
                   }
                 >

@@ -119,7 +119,11 @@ function InviteMemberForm(props: {
       if (data.status) {
         toast.success("Bill invite sent successfully");
         queryClient.invalidateQueries({
-          queryKey: ["/user/bills"],
+          queryKey: ["bills"],
+        });
+
+        queryClient.invalidateQueries({
+          queryKey: ["bill-detail", params.billId?.toString()],
         });
       }
       props.onSuccess();

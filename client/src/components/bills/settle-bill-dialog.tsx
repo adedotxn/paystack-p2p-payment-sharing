@@ -43,6 +43,7 @@ import { useMediaQuery } from "@/utils/useMediaQuery";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Environments } from "@/utils/config/enviroments.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 const formSchema = z.object({
   recipient_account_number: z
@@ -65,6 +66,7 @@ type Bank = {
 export default function SettleBillDialog(props: { billId: number }) {
   const [open, setOpen] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -124,9 +126,13 @@ export default function SettleBillDialog(props: { billId: number }) {
     onSuccess: (data: { status: boolean; data: [] }) => {
       if (data.status) {
         toast.success("Bill settled successfully");
-        // queryClient.invalidateQueries({
-        //   queryKey: ["/user/bills"],
-        // });
+        queryClient.invalidateQueries({
+          queryKey: ["bills"],
+        });
+
+        queryClient.invalidateQueries({
+          queryKey: ["bill-detail", props.billId.toString()],
+        });
       }
       setOpen(false);
     },

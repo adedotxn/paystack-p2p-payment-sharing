@@ -1,4 +1,4 @@
-import { Plus, Search, ChevronRight } from "lucide-react";
+import { Search, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,11 +17,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet } from "react-router-dom";
 import { Environments } from "@/utils/config/enviroments.config";
+import { useState } from "react";
+import { CreateBillDialog } from "@/components/bills/create-bill-dialog";
 
 export default function BillsPage() {
+  const [filter, setFilter] = useState("all");
+
   const bills = useQuery<{
     status: boolean;
     data: {
@@ -44,21 +50,104 @@ export default function BillsPage() {
         createdAt: string;
         updatedAt: string;
       };
-      members: unknown[];
-      paidMembers: unknown[];
-      unpaidMembers: unknown[];
+      members: {
+        id: number;
+        userId: number;
+        billId: number;
+        role: string;
+        joinedAt: string;
+        assignedAmount: number;
+        paidAmount: number;
+        user: {
+          id: number;
+          email: string;
+          name: string;
+          picture: string;
+          createdAt: string;
+          updatedAt: string;
+        };
+        payments: {
+          id: number;
+          amount: number;
+          status: string;
+          paystackRef: string;
+          userId: number;
+          billId: number;
+          billMemberId: number;
+          createdAt: string;
+          updatedAt: string;
+        }[];
+      }[];
+      paidMembers: {
+        id: number;
+        userId: number;
+        billId: number;
+        role: string;
+        joinedAt: string;
+        assignedAmount: number;
+        paidAmount: number;
+        user: {
+          id: number;
+          email: string;
+          name: string;
+          picture: string;
+          createdAt: string;
+          updatedAt: string;
+        };
+        payments: {
+          id: number;
+          amount: number;
+          status: string;
+          paystackRef: string;
+          userId: number;
+          billId: number;
+          billMemberId: number;
+          createdAt: string;
+          updatedAt: string;
+        }[];
+      }[];
+      unpaidMembers: {
+        id: number;
+        userId: number;
+        billId: number;
+        role: string;
+        joinedAt: string;
+        assignedAmount: number;
+        paidAmount: number;
+        user: {
+          id: number;
+          email: string;
+          name: string;
+          picture: string;
+          createdAt: string;
+          updatedAt: string;
+        };
+        payments: {
+          id: number;
+          amount: number;
+          status: string;
+          paystackRef: string;
+          userId: number;
+          billId: number;
+          billMemberId: number;
+          createdAt: string;
+          updatedAt: string;
+        }[];
+      }[];
     }[];
   }>({
-    queryKey: ["/user/bills"],
+    queryKey: ["bills", filter],
     queryFn: async () => {
       try {
-        const resp = await fetch(`${Environments.API_URL}/user/bills`, {
+        const url =
+          filter === "all"
+            ? `${Environments.API_URL}/user/bills`
+            : `${Environments.API_URL}/user/bills?status=${filter}`;
+        const resp = await fetch(url, {
           credentials: "include",
         });
 
         const data = await resp.json();
-
-        console.log("billsss", data);
         return data;
       } catch (e) {
         if (e instanceof Error) throw new Error(e.message);
@@ -72,9 +161,7 @@ export default function BillsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">My Bills</h1>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Create New Bill
-        </Button>
+        <CreateBillDialog />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -82,16 +169,15 @@ export default function BillsPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <Input type="text" placeholder="Search bills" className="pl-10" />
         </div>
-        <Select>
+        <Select onValueChange={(value) => setFilter(value)}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
-            <SelectItem value="in-progress">In Progress</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="action-needed">Action Needed</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="open">Open</SelectItem>
+            <SelectItem value="settled">Settled</SelectItem>
+            <SelectItem value="closed">Closed</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -117,29 +203,26 @@ export default function BillsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-gray-500">
-                    Total: ${bill.total.toFixed(2)}
+                    Total: NGN {bill.totalAmount}
                   </span>
                   <span className="text-sm font-medium text-gray-500">
-                    Paid: ${bill.paid.toFixed(2)}
+                    Paid: NGN {bill.currentAmount}
                   </span>
                 </div>
                 <Progress
-                  value={(bill.paid / bill.total) * 100}
+                  value={(bill.currentAmount / bill.totalAmount) * 100}
                   className="w-full mb-2"
-                /> */}
+                />
                 <div className="flex justify-between items-center">
                   <div className="flex -space-x-2">
-                    {[...Array(Math.min(bill.members.length, 3))].map(
-                      (_, i) => (
-                        <Avatar key={i} className="border-2 border-white">
-                          <AvatarFallback>
-                            {String.fromCharCode(65 + i)}
-                          </AvatarFallback>
-                        </Avatar>
-                      ),
-                    )}
+                    {bill.members.slice(0, 3).map((member) => (
+                      <Avatar key={member.id} className="border-2 border-white">
+                        <AvatarFallback>{member.user.name[0]}</AvatarFallback>
+                      </Avatar>
+                    ))}
+
                     {bill.members.length > 3 && (
                       <Avatar className="border-2 border-white">
                         <AvatarFallback>

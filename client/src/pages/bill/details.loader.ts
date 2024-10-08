@@ -1,10 +1,9 @@
 import { Environments } from "@/utils/config/enviroments.config";
+import { QueryClient } from "@tanstack/react-query";
 import { LoaderFunctionArgs } from "react-router-dom";
 
-export const BillDetailsLoader = async ({ params }: LoaderFunctionArgs) => {
+async function getBillDetails(billId?: string) {
   try {
-    const billId = params.billId;
-
     const response = await fetch(`${Environments.API_URL}/bill/${billId}`, {
       credentials: "include",
     });
@@ -15,4 +14,23 @@ export const BillDetailsLoader = async ({ params }: LoaderFunctionArgs) => {
     console.error(e);
     return { error: true };
   }
-};
+}
+
+export const billDetailsQuery = (id?: string) => ({
+  queryKey: ["bill-detail", id?.toString()],
+  queryFn: async () => getBillDetails(id),
+});
+
+export const BillDetailsLoader =
+  (queryClient: QueryClient) =>
+  async ({ params }: LoaderFunctionArgs) => {
+    const billId = params.billId;
+
+    if (!billId) return { error: true };
+
+    const query = billDetailsQuery(billId);
+    return (
+      queryClient.getQueryData(query.queryKey) ??
+      (await queryClient.fetchQuery(query))
+    );
+  };

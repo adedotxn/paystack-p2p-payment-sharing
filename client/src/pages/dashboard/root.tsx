@@ -1,4 +1,4 @@
-import { DollarSign, ChevronRight, Menu } from "lucide-react";
+import { DollarSign, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,32 @@ import { Environments } from "@/utils/config/enviroments.config";
 dayjs.extend(relativeTime);
 
 export default function Dashboard() {
+  const profile = useQuery<{
+    status: boolean;
+    data: {
+      id: number;
+      email: string;
+      name: string;
+      picture: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }>({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      const response = await fetch(`${Environments.API_URL}/user/profile`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("An error occurred while fetching the data.");
+      }
+      return response.json();
+    },
+  });
+
+  const user = profile.data?.data;
+
   const bills = useQuery<{
     status: boolean;
     data: {
@@ -50,7 +76,7 @@ export default function Dashboard() {
       unpaidMembers: unknown[];
     }[];
   }>({
-    queryKey: ["bills", 3],
+    queryKey: ["bills", { limit: 3 }],
     queryFn: async () => {
       try {
         const resp = await fetch(`${Environments.API_URL}/user/bills?limit=3`, {
@@ -104,38 +130,33 @@ export default function Dashboard() {
             </div>
             <div className="-mr-2 -my-2 md:hidden">
               <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" aria-hidden="true" />
+                {/* <Menu className="h-6 w-6" aria-hidden="true" /> */}
+                <NotificationsPopover />
               </Button>
             </div>
             <nav className="hidden md:flex space-x-10">
-              <a
-                href="#"
+              <Link
+                to="/dashboard"
                 className="text-base font-medium text-gray-500 hover:text-gray-900"
               >
                 Dashboard
-              </a>
+              </Link>
               <Link
                 to="/bills"
                 className="text-base font-medium text-gray-500 hover:text-gray-900"
               >
                 My Bills
               </Link>
-
-              <a
-                href="#"
-                className="text-base font-medium text-gray-500 hover:text-gray-900"
-              >
-                Groups
-              </a>
             </nav>
             <div className="hidden md:flex items-center justify-end md:flex-1 lg:w-0">
               <NotificationsPopover />
               <Avatar className="ml-4">
-                <AvatarImage
-                  src="https://github.com/shadcn.png"
-                  alt="@shadcn"
-                />
-                <AvatarFallback>CN</AvatarFallback>
+                {user ? (
+                  <AvatarImage src={user.picture} alt={user.name} />
+                ) : null}
+                <AvatarFallback>
+                  {user?.name.split(" ")[0][0] ?? ""}
+                </AvatarFallback>
               </Avatar>
             </div>
           </div>
@@ -146,7 +167,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
             <h1 className="text-3xl font-bold text-gray-900 mb-6">
-              Welcome back, Alex!
+              Welcome back, {user?.name.split(" ")[0] ?? ""}!
             </h1>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -196,7 +217,9 @@ export default function Dashboard() {
                 </CardContent>
                 <CardFooter>
                   <Button variant="link" className="w-full">
-                    View All Bills <ChevronRight className="ml-2 h-4 w-4" />
+                    <Link to="/bills" className="flex items-center">
+                      View All Bills <ChevronRight className="ml-2 h-4 w-4" />
+                    </Link>
                   </Button>
                 </CardFooter>
               </Card>
@@ -222,16 +245,31 @@ export default function Dashboard() {
                           Total: {bill.currency}
                           {bill.currentAmount}
                         </span>
-                        <Badge>{bill.status}</Badge>
+                        <Badge
+                          variant={
+                            bill.status === "SETTLED"
+                              ? "outline"
+                              : bill.status === "OPEN"
+                                ? "destructive"
+                                : "default"
+                          }
+                        >
+                          {bill.status}
+                        </Badge>
                       </div>
                       {bill.members.length === 0 ? null : (
-                        <Progress value={66} className="w-full" />
+                        <Progress
+                          value={(bill.currentAmount / bill.totalAmount) * 100}
+                          className="w-full"
+                        />
                       )}
 
                       <p className="text-sm text-gray-500 mt-2">
                         {bill.members.length === 0
                           ? "This bill has no members (yet)"
-                          : `${bill.paidMembers.length}/${bill.members.length} people have paid`}
+                          : bill.members.length === 1
+                            ? `${bill.paidMembers.length === 1 ? "Only member has paid" : "Only member has not paid"}`
+                            : `${bill.paidMembers.length}/${bill.members.length} people have paid`}
                       </p>
                     </CardContent>
                     <CardFooter>

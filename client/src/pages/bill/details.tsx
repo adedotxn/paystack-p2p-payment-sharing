@@ -9,10 +9,40 @@ import { Link, useLoaderData } from "react-router-dom";
 import dayjs from "dayjs";
 import localizedFormat from "dayjs/plugin/localizedFormat";
 import { InviteMemberDialog } from "@/components/bills/invite-member-dialog";
+import PaymentButton from "@/components/bills/payment-button";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 dayjs.extend(localizedFormat);
 
 export default function BillDetailPage() {
+  const profile = useQuery<{
+    status: boolean;
+    data: {
+      id: number;
+      email: string;
+      name: string;
+      picture: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }>({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      const response = await fetch("http://localhost:5000/user/profile", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("An error occurred while fetching the data.");
+      }
+      return response.json();
+    },
+  });
+
+  const user = profile.data?.data;
+  console.log(user);
+
   const loaderData = useLoaderData() as {
     error: boolean;
     data: {
@@ -63,29 +93,20 @@ export default function BillDetailPage() {
           createdAt: string;
           updatedAt: string;
         }[];
-        payments: unknown[];
+        payments: {
+          id: number;
+          amount: number;
+          status: string;
+          paystackRef: string;
+          userId: number;
+          billId: number;
+          billMemberId: number;
+          createdAt: string;
+          updatedAt: string;
+        }[];
+        unassignedAmount: number;
       };
     };
-  };
-
-  console.log("loaderData", loaderData);
-
-  const billDetails = {
-    id: 1,
-    name: "Dinner at Olive Garden",
-    total: 120,
-    paid: 80,
-    members: [
-      { name: "You", paid: true, amount: 20 },
-      { name: "Alice", paid: true, amount: 20 },
-      { name: "Bob", paid: true, amount: 20 },
-      { name: "Charlie", paid: true, amount: 20 },
-      { name: "David", paid: false, amount: 20 },
-      { name: "Eve", paid: false, amount: 20 },
-    ],
-    status: "In Progress",
-    date: "June 15, 2023",
-    description: "Team dinner after the project completion",
   };
 
   if (loaderData.error) {
@@ -102,6 +123,9 @@ export default function BillDetailPage() {
   }
 
   const billDetailss = loaderData.data.data;
+  const currentBillMember = billDetailss.members.find(
+    (member) => member.userId === user?.id,
+  );
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -118,14 +142,14 @@ export default function BillDetailPage() {
               <span>{billDetailss.title}</span>
               <Badge
                 variant={
-                  billDetails.status === "Completed"
+                  billDetailss.status === "SETTLED"
                     ? "outline"
-                    : billDetails.status === "Action Needed"
+                    : billDetailss.status === "OPEN"
                       ? "destructive"
                       : "default"
                 }
               >
-                {billDetails.status}
+                {billDetailss.status}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -152,7 +176,7 @@ export default function BillDetailPage() {
               <Tabs defaultValue="members">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="members">Members</TabsTrigger>
-                  <TabsTrigger value="transactions">Transactions</TabsTrigger>
+                  <TabsTrigger value="invitations">Invitations</TabsTrigger>
                 </TabsList>
                 <TabsContent value="members">
                   <div className="space-y-4">
@@ -170,7 +194,7 @@ export default function BillDetailPage() {
                           <div className="ml-4">
                             <p className="text-sm font-medium">
                               {member.user.name}
-                              {member.role === "OWNER" ? " (Me)" : ""}
+                              {/* {member.id === user?.id ? " (Me)" : ""} */}
                             </p>
                             <p className="text-sm text-gray-500">
                               {billDetailss.currency} {member.assignedAmount}
@@ -190,33 +214,52 @@ export default function BillDetailPage() {
                     ))}
                   </div>
                 </TabsContent>
-                <TabsContent value="transactions">
+                <TabsContent value="invitations">
                   <div className="space-y-4">
-                    {billDetails.members
-                      .filter((m) => m.paid)
-                      .map((member, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between"
-                        >
-                          <div className="flex items-center">
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback>{member.name[0]}</AvatarFallback>
-                            </Avatar>
-                            <div className="ml-4">
-                              <p className="text-sm font-medium">
-                                {member.name} paid
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                June 16, 2023
-                              </p>
-                            </div>
+                    {billDetailss.invitations.map((invited, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback>{invited.email[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="ml-4">
+                            <p className="text-sm font-medium">
+                              {invited.email} --{" "}
+                              <span className="text-xs">
+                                NGN {invited.assignedAmount}
+                              </span>
+                            </p>
+
+                            <p className="text-xs text-gray-500">
+                              Invited{" "}
+                              {dayjs().from(dayjs(invited.createdAt), true)} ago
+                            </p>
                           </div>
-                          <span className="text-sm font-medium">
-                            ${member.amount.toFixed(2)}
-                          </span>
                         </div>
-                      ))}
+                        <span className="text-sm font-medium">
+                          {invited.status === "PENDING" && (
+                            <Badge variant="secondary" className="bg-yellow-50">
+                              {invited.status}
+                            </Badge>
+                          )}
+
+                          {invited.status === "ACCEPTED" && (
+                            <Badge variant="outline" className="bg-green-50">
+                              {invited.status}
+                            </Badge>
+                          )}
+
+                          {invited.status === "REJECTED" && (
+                            <Badge variant="outline" className="bg-red-50">
+                              {invited.status}
+                            </Badge>
+                          )}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -234,10 +277,34 @@ export default function BillDetailPage() {
               <CardTitle>Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button className="w-full">Make Payment</Button>
-              <InviteMemberDialog />
-              <Button variant="outline" className="w-full">
-                Close Bill
+              {currentBillMember?.paidAmount !==
+                currentBillMember?.assignedAmount && (
+                <div>
+                  {user && currentBillMember ? (
+                    <PaymentButton
+                      amount={currentBillMember.assignedAmount}
+                      email={user.email}
+                      billId={billDetailss.id}
+                    />
+                  ) : null}
+                </div>
+              )}
+              <InviteMemberDialog
+                unassignedAmount={billDetailss.unassignedAmount}
+              />
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  if (billDetailss.totalAmount !== billDetailss.currentAmount) {
+                    toast.error(
+                      "Please settle all payments attempting to settle the bill",
+                    );
+                  }
+                }}
+              >
+                Settle Bill
               </Button>
             </CardContent>
           </Card>
@@ -257,12 +324,16 @@ export default function BillDetailPage() {
                 <span className="text-sm text-gray-500">Total members</span>
                 <span className="text-sm">{billDetailss.members.length}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Amount per person</span>
-                <span className="text-sm">
-                  ${(billDetails.total / billDetails.members.length).toFixed(2)}
-                </span>
-              </div>
+              {billDetailss.unassignedAmount > 0 ? (
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">
+                    Unassigned Amount:
+                  </span>
+                  <span className="text-sm">
+                    {billDetailss.currency} {billDetailss.unassignedAmount}
+                  </span>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </div>

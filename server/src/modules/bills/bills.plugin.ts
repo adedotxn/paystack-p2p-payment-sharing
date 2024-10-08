@@ -167,7 +167,27 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
             return error(404, { status: true, message: "Bill not found" });
           }
 
-          return { status: true, data: bill };
+          const assignedAmountFromMembers = bill.members.reduce(
+            (total, member) => total + member.assignedAmount,
+            0,
+          );
+
+          const assignedAmountFromInvitations = bill.invitations
+            .filter((invite) => invite.status === "PENDING") // Only considering pending invitations
+            .reduce((total, invite) => total + invite.assignedAmount, 0);
+
+          const totalAssignedAmount =
+            assignedAmountFromMembers + assignedAmountFromInvitations;
+
+          const unassignedAmount = bill.totalAmount - totalAssignedAmount;
+
+          return {
+            status: true,
+            data: {
+              ...bill,
+              unassignedAmount: unassignedAmount >= 0 ? unassignedAmount : 0,
+            },
+          };
         } catch (e) {
           if (e instanceof Error) {
             error(400, { status: false, message: e.message });

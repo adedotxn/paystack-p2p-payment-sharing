@@ -27,7 +27,7 @@ import { QueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 
-export function InviteMemberDialog() {
+export function InviteMemberDialog(props: { unassignedAmount?: number }) {
   const [open, setOpen] = React.useState(false);
 
   function onSuccess() {
@@ -46,10 +46,13 @@ export function InviteMemberDialog() {
           <DialogTitle>Invite a new member</DialogTitle>
           <DialogDescription>
             Enter the email address of the person you'd like to invite to this
-            bill.
+            bill and the amount you'd like to assign to them'.
           </DialogDescription>
         </DialogHeader>
-        <InviteMemberForm onSuccess={onSuccess} />
+        <InviteMemberForm
+          onSuccess={onSuccess}
+          unassignedAmount={props.unassignedAmount}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -65,7 +68,10 @@ const formSchema = z.object({
   }),
 });
 
-function InviteMemberForm(props: { onSuccess: () => void }) {
+function InviteMemberForm(props: {
+  onSuccess: () => void;
+  unassignedAmount?: number;
+}) {
   const params = useParams();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -166,6 +172,13 @@ function InviteMemberForm(props: { onSuccess: () => void }) {
               <FormDescription>
                 Provide the amount to be assigned to this user for this bill
                 (minimum 100 Naira).{" "}
+                {props.unassignedAmount && props.unassignedAmount > 0 ? (
+                  <div>
+                    {" "}
+                    NB: This bill still has NGN {props.unassignedAmount}{" "}
+                    unassigned{" "}
+                  </div>
+                ) : null}
               </FormDescription>
               <FormMessage />
             </FormItem>

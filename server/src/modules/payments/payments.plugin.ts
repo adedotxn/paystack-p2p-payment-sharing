@@ -91,11 +91,43 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
       },
     )
     .patch(
-      "/verify",
+      "/verify/:billId",
       async ({ cookie, params, error, body }) => {
         const { paystackRef } = body;
 
+        const access_token = cookie.access_token.value;
+        if (!access_token) {
+          error(401, { status: false, message: "User not authenticated" });
+        }
+
         try {
+          const user = await prisma.userVerification.findUnique({
+            where: { accessToken: access_token },
+            include: { user: true },
+          });
+
+          if (!user) {
+            return error(404, { status: false, message: "User not found" });
+          }
+
+          const billMember = await prisma.billMember.findFirst({
+            where: { userId: user.user.id, billId: params.billId },
+          });
+
+          if (!billMember) {
+            return error(403, {
+              status: false,
+              message: "You are not part of this bill",
+            });
+          }
+
+          if (billMember.paidAmount === billMember.assignedAmount) {
+            return error(400, {
+              status: false,
+              message: "You have already sorted your part of the bill",
+            });
+          }
+
           const res = await fetch(
             `https://api.paystack.co/transaction/verify/${paystackRef}`,
             {
@@ -107,6 +139,7 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
           );
 
           const paystackResponse = await res.json();
+          console.log("verify pstackresp", paystackResponse);
           if (!paystackResponse.status) {
             return error(400, {
               status: false,
@@ -114,19 +147,19 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
             });
           }
 
-          const payment = await prisma.payment.update({
-            where: { paystackRef },
+          const payment = await prisma.payment.create({
             data: {
+              amount: paystackResponse.data.amount / 100,
               status:
                 paystackResponse.data.status === "success"
                   ? "SUCCESSFUL"
                   : "FAILED",
+              paystackRef: paystackResponse.data.reference,
+              userId: user.user.id,
+              billId: params.billId,
+              billMemberId: billMember.id,
               updatedAt: paystackResponse.data.paid_at,
             },
-          });
-
-          const billMember = await prisma.billMember.findUnique({
-            where: { id: payment.billMemberId },
           });
 
           if (billMember) {
@@ -140,14 +173,31 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
             });
 
             if (bill) {
-              await prisma.bill.update({
+              const updatedBill = await prisma.bill.update({
                 where: { id: bill.id },
                 data: { currentAmount: bill.currentAmount + payment.amount },
+                select: {
+                  currentAmount: true,
+                  totalAmount: true,
+                  status: true,
+                },
               });
+
+              if (updatedBill.currentAmount >= updatedBill.totalAmount) {
+                // Update the bill status to "CLOSED"
+                await prisma.bill.update({
+                  where: { id: bill.id },
+                  data: { status: "CLOSED" },
+                });
+              }
             }
           }
 
-          return { status: true, message: "Payment verified", data: payment };
+          return {
+            status: true,
+            message: "Payment verified",
+            data: payment,
+          };
         } catch (e) {
           if (e instanceof Error) {
             return error(500, { status: false, message: e.message });
@@ -157,6 +207,9 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
       {
         body: t.Object({
           paystackRef: t.String(),
+        }),
+        params: t.Object({
+          billId: t.Number(),
         }),
         detail: {
           tags: ["Payment"],

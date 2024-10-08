@@ -7,11 +7,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Environments } from "@/utils/config/enviroments.config";
 
 export default function Root() {
   async function handleGoogleAuth() {
     try {
-      const response = await fetch("http://localhost:5000/auth/google");
+      const response = await fetch(`${Environments.API_URL}/auth/google`);
       const data: { redirect: string } = await response.json();
 
       if (data.redirect) {

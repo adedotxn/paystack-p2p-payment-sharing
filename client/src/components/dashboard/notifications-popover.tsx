@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Environments } from "@/utils/config/enviroments.config";
 
 export default function NotificationsPopover() {
   const queryClient = new QueryClient();
@@ -35,7 +36,7 @@ export default function NotificationsPopover() {
     queryFn: async () => {
       try {
         const resp = await fetch(
-          `http://localhost:5000/bill/invites?status=pending`,
+          `${Environments.API_URL}/bill/invites?status=pending`,
           {
             credentials: "include",
           },
@@ -56,7 +57,7 @@ export default function NotificationsPopover() {
     mutationFn: async (value: { invitationId: number }) => {
       try {
         const response = await fetch(
-          `http://localhost:5000/bill/invite/accept`,
+          `${Environments.API_URL}/bill/invite/accept`,
           {
             method: "POST",
             credentials: "include",

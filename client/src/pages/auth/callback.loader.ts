@@ -1,3 +1,4 @@
+import { Environments } from "@/utils/config/enviroments.config";
 import { LoaderFunctionArgs, redirect } from "react-router-dom";
 
 export const AuthCallbackLoader = async ({ request }: LoaderFunctionArgs) => {
@@ -10,7 +11,7 @@ export const AuthCallbackLoader = async ({ request }: LoaderFunctionArgs) => {
 
   try {
     const response = await fetch(
-      `http://localhost:5000/auth/google/callback?code=${code}`,
+      `${Environments.API_URL}/auth/google/callback?code=${code}`,
       {
         credentials: "include",
       },

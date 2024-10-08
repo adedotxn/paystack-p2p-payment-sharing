@@ -18,6 +18,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { Link } from "react-router-dom";
 import NotificationsPopover from "@/components/dashboard/notifications-popover";
+import { Environments } from "@/utils/config/enviroments.config";
 
 dayjs.extend(relativeTime);
 
@@ -52,7 +53,7 @@ export default function Dashboard() {
     queryKey: ["/user/bills", 3],
     queryFn: async () => {
       try {
-        const resp = await fetch(`http://localhost:5000/user/bills?limit=3`, {
+        const resp = await fetch(`${Environments.API_URL}/user/bills?limit=3`, {
           credentials: "include",
         });
 
@@ -74,7 +75,7 @@ export default function Dashboard() {
     queryKey: ["/user/bills/active"],
     queryFn: async () => {
       try {
-        const resp = await fetch(`http://localhost:5000/user/bills/active`, {
+        const resp = await fetch(`${Environments.API_URL}/user/bills/active`, {
           credentials: "include",
         });
 

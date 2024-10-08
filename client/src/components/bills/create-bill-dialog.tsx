@@ -38,6 +38,7 @@ import { useMediaQuery } from "@/utils/useMediaQuery";
 import { QueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getFormattedDate } from "@/utils/getFormattedDate";
+import { Environments } from "@/utils/config/enviroments.config";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -123,7 +124,7 @@ function CreateBillForm(props: { onSuccess: () => void }) {
 
   const mutation = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const response = await fetch("http://localhost:5000/bill", {
+      const response = await fetch(`${Environments.API_URL}/bill`, {
         method: "POST",
         credentials: "include",
         headers: {

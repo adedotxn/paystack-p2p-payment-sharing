@@ -22,7 +22,7 @@ const app = new Elysia()
   )
   .use(
     cors({
-      origin: Environments.APP_URL,
+      origin: true,
       credentials: true,
     }),
   )

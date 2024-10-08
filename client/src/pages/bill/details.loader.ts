@@ -1,10 +1,11 @@
+import { Environments } from "@/utils/config/enviroments.config";
 import { LoaderFunctionArgs } from "react-router-dom";
 
 export const BillDetailsLoader = async ({ params }: LoaderFunctionArgs) => {
   try {
     const billId = params.billId;
 
-    const response = await fetch(`http://localhost:5000/bill/${billId}`, {
+    const response = await fetch(`${Environments.API_URL}/bill/${billId}`, {
       credentials: "include",
     });
     const data = await response.json();

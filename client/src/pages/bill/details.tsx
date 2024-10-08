@@ -13,6 +13,7 @@ import PaymentButton from "@/components/bills/payment-button";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import SettleBillDialog from "@/components/bills/settle-bill-dialog";
+import { Environments } from "@/utils/config/enviroments.config";
 
 dayjs.extend(localizedFormat);
 
@@ -30,7 +31,7 @@ export default function BillDetailPage() {
   }>({
     queryKey: ["profile"],
     queryFn: async () => {
-      const response = await fetch("http://localhost:5000/user/profile", {
+      const response = await fetch(`${Environments.API_URL}/user/profile`, {
         credentials: "include",
       });
 

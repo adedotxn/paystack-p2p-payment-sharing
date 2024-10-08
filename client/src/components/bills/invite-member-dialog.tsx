@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { QueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
+import { Environments } from "@/utils/config/enviroments.config";
 
 export default function InviteMemberDialog(props: {
   unassignedAmount?: number;
@@ -88,7 +89,7 @@ function InviteMemberForm(props: {
 
   const mutation = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const response = await fetch("http://localhost:5000/bill/invite", {
+      const response = await fetch(`${Environments.API_URL}/bill/invite`, {
         method: "POST",
         credentials: "include",
         headers: {

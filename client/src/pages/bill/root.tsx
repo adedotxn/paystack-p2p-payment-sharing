@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet } from "react-router-dom";
+import { Environments } from "@/utils/config/enviroments.config";
 
 export default function BillsPage() {
   const bills = useQuery<{
@@ -51,7 +52,7 @@ export default function BillsPage() {
     queryKey: ["/user/bills"],
     queryFn: async () => {
       try {
-        const resp = await fetch(`http://localhost:5000/user/bills`, {
+        const resp = await fetch(`${Environments.API_URL}/user/bills`, {
           credentials: "include",
         });
 

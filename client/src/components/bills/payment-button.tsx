@@ -14,7 +14,7 @@ export default function PaymentButton(props: {
   const mutation = useMutation({
     mutationFn: async (paystackRef: string) => {
       const response = await fetch(
-        `http://localhost:5000/payment/verify/${props.billId}`,
+        `${Environments.API_URL}/payment/verify/${props.billId}`,
         {
           method: "PATCH",
           credentials: "include",

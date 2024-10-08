@@ -16,8 +16,8 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
           `&redirect_uri=${Environments.GOOGLE_REDIRECT_URI}` +
           `&response_type=code` +
           `&scope=https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email` +
-          `&access_type=offline`;
-
+          `&access_type=offline` +
+          `&prompt=consent`;
         return { redirect: authUrl };
       },
       {
@@ -53,8 +53,6 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
 
           const tokenData = await tokenResponse.json();
 
-          console.log("TokenData", tokenData);
-
           if (!tokenResponse.ok) {
             console.error(
               `Error exchanging code for tokens: ${tokenData.error}`,
@@ -62,9 +60,17 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
             return error(500, { status: false, message: tokenData.error });
           }
 
+          console.log("TokenData", tokenData);
+
           const { access_token, refresh_token, expires_in, id_token } =
             tokenData;
 
+          if (!access_token || !refresh_token) {
+            return error(500, {
+              status: false,
+              message: "Problem during auth flow. Try ahaon",
+            });
+          }
           const userInfoResponse = await fetch(
             "https://www.googleapis.com/oauth2/v2/userinfo",
             {

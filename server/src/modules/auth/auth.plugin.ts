@@ -144,8 +144,8 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
           cookie.access_token.maxAge = expires_in;
           cookie.refresh_token.maxAge = 60 * 60 * 24 * 30; // 30 days
 
-          // cookie.access_tokem.secure = true;
-          // cookie.refresh_token.secure = true;
+          cookie.access_token.secure = true;
+          cookie.refresh_token.secure = true;
 
           cookie.access_token.path = "/";
           cookie.refresh_token.path = "/";
@@ -153,8 +153,8 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
           cookie.access_token.domain = Environments.DOMAIN;
           cookie.refresh_token.domain = Environments.DOMAIN;
 
-          // cookie.access_token.sameSite = "lax";
-          // cookie.refresh_token.sameSite = "lax";
+          cookie.access_token.sameSite = "none";
+          cookie.refresh_token.sameSite = "none";
 
           return { user: { name: google_user.name, email: google_user.email } };
         } catch (e) {

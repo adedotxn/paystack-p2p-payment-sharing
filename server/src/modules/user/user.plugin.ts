@@ -67,18 +67,7 @@ export const userPlugin = new Elysia().group("/user", (app) =>
 
           const limit = query.limit ? parseInt(query.limit) : null;
 
-          // Fetch bills the user owns or is a member of
-          const ownedBills = await prisma.bill.findMany({
-            where: { ownerId: user.user.id },
-            include: {
-              owner: true,
-              members: {
-                include: { user: true, payments: true },
-              },
-            },
-          });
-
-          const memberOfBills = await prisma.bill.findMany({
+          let bills = await prisma.bill.findMany({
             where: {
               members: {
                 some: {
@@ -97,18 +86,16 @@ export const userPlugin = new Elysia().group("/user", (app) =>
             },
           });
 
-          let allBills = [...ownedBills, ...memberOfBills];
-
-          allBills.sort(
+          bills.sort(
             (a, b) =>
               new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
           );
 
           if (limit) {
-            allBills = allBills.slice(0, limit);
+            bills = bills.slice(0, limit);
           }
 
-          const billsWithPaymentStatus = allBills.map((bill) => {
+          const billsWithPaymentStatus = bills.map((bill) => {
             const paidMembers = bill.members.filter(
               (member) => member.paidAmount >= member.assignedAmount,
             );

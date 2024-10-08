@@ -50,7 +50,7 @@ export default function Dashboard() {
       unpaidMembers: unknown[];
     }[];
   }>({
-    queryKey: ["/user/bills", 3],
+    queryKey: ["bills", 3],
     queryFn: async () => {
       try {
         const resp = await fetch(`${Environments.API_URL}/user/bills?limit=3`, {
@@ -72,7 +72,7 @@ export default function Dashboard() {
     status: true;
     data: [];
   }>({
-    queryKey: ["/user/bills/active"],
+    queryKey: ["active-bills"],
     queryFn: async () => {
       try {
         const resp = await fetch(`${Environments.API_URL}/user/bills/active`, {

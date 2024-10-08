@@ -154,7 +154,10 @@ function CreateBillForm(props: { onSuccess: () => void }) {
       if (data.status) {
         toast.success("Bill created successfully");
         queryClient.invalidateQueries({
-          queryKey: ["/user/bills"],
+          queryKey: ["bills", 3],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["active-bills"],
         });
       }
       props.onSuccess();

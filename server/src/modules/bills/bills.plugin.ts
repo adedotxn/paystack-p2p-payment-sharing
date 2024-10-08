@@ -33,6 +33,14 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
           });
         }
 
+        if (body.assignedCreatorAmount >= body.amount) {
+          return error(400, {
+            status: false,
+            message:
+              "Cannot assign amoung greater than or same as the bill amount",
+          });
+        }
+
         try {
           const billCreator = await prisma.userVerification.findUnique({
             where: { accessToken: cookie.access_token.value },
@@ -83,6 +91,17 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
             return error(400, {
               status: paystackPageResponse.status,
               message: paystackPageResponse.message,
+            });
+          }
+
+          const existingBill = await prisma.bill.findUnique({
+            where: { slug: paystackPageResponse.data.slug },
+          });
+
+          if (existingBill) {
+            return error(400, {
+              status: false,
+              message: "Bill  already exists",
             });
           }
 

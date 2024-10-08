@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { usePaystackPayment } from "react-paystack";
 import { Button } from "../ui/button";
 import { Environments } from "@/utils/config/enviroments.config";
@@ -58,7 +60,6 @@ export default function PaymentButton(props: {
 
   const initializePayment = usePaystackPayment(config);
 
-  // you can call this function anything
   const onSuccess = (response?: any) => {
     const res = response as {
       reference: string;

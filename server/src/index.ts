@@ -5,6 +5,7 @@ import { authPlugin } from "./modules/auth/auth.plugin";
 import { billsPlugin } from "./modules/bills/bills.plugin";
 import { userPlugin } from "./modules/user/user.plugin";
 import { paymentsPlugin } from "./modules/payments/payments.plugin";
+import { Environments } from "./config/environment.config";
 
 const app = new Elysia()
   .use(
@@ -21,7 +22,7 @@ const app = new Elysia()
   )
   .use(
     cors({
-      origin: "http://localhost:5173",
+      origin: Environments.APP_URL,
       credentials: true,
     }),
   )
@@ -29,6 +30,7 @@ const app = new Elysia()
   .use(userPlugin)
   .use(billsPlugin)
   .use(paymentsPlugin)
+  .get("/healthcheck", () => "Running just fine")
   .listen(5000);
 
 console.log(

@@ -5,4 +5,5 @@ export const Environments = {
 
   PAYSTACK_SECRET_KEY: process.env.PAYSTACK_SECRET_KEY,
   PAYSTACK_PUBLIC_KEY: process.env.PAYSTACK_PUBLIC_KEY,
+  APP_URL: process.env.APP_URL,
 };

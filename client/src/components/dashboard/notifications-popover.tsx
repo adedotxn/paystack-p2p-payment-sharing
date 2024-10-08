@@ -71,7 +71,7 @@ export default function NotificationsPopover() {
     onSuccess: () => {
       toast.success("Invite accepted!");
       queryClient.invalidateQueries({
-        queryKey: ["/bill/invites", "/user/bills"],
+        queryKey: ["bills"],
       });
     },
   });

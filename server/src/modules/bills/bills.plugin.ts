@@ -94,17 +94,6 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
             });
           }
 
-          const existingBill = await prisma.bill.findUnique({
-            where: { slug: paystackPageResponse.data.slug },
-          });
-
-          if (existingBill) {
-            return error(400, {
-              status: false,
-              message: "Bill  already exists",
-            });
-          }
-
           const createdBill = await prisma.bill.create({
             data: {
               title: paystackPageResponse.data.name,
@@ -301,7 +290,7 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
         },
       },
     )
-    .post(
+    .patch(
       "/invite/accept",
       async ({ body, error, cookie }) => {
         /**
@@ -321,7 +310,7 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
           if (!invitation || invitation.status !== "PENDING") {
             return error(404, {
               status: false,
-              message: "Invalid or already accepted invitation",
+              message: "Invalid or already accepted/rejected invitation",
             });
           }
 
@@ -366,6 +355,55 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
           return {
             status: true,
             message: "Invitation accepted and user added to the bill",
+          };
+        } catch (e) {
+          if (e instanceof Error) {
+            error(400, { status: false, message: e.message });
+          }
+        }
+      },
+      {
+        body: t.Object({
+          invitationId: t.Number(),
+        }),
+        detail: {
+          tags: ["Bill"],
+        },
+      },
+    )
+    .patch(
+      "/invite/reject",
+      async ({ body, cookie, error }) => {
+        const { invitationId } = body;
+        try {
+          const invitation = await prisma.invitation.findUnique({
+            where: { id: invitationId },
+            include: { bill: { include: { members: true } } },
+          });
+
+          if (!invitation || invitation.status !== "PENDING") {
+            return error(404, {
+              status: false,
+              message: "Invalid or already accepted/rejected invitation",
+            });
+          }
+
+          const user = await prisma.user.findUnique({
+            where: { email: invitation.email },
+          });
+
+          if (!user) {
+            return error(404, { status: false, message: "User not found" });
+          }
+
+          await prisma.invitation.update({
+            where: { id: invitationId },
+            data: { status: "REJECTED" },
+          });
+
+          return {
+            status: true,
+            message: "Invitation rejected",
           };
         } catch (e) {
           if (e instanceof Error) {

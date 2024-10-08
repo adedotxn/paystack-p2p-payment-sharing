@@ -2,6 +2,12 @@ import { Elysia, t } from "elysia";
 import { Environments } from "../../config/environment.config";
 import { PrismaClient } from "@prisma/client";
 
+enum BillStatus {
+  open = "open",
+  closed = "closed",
+  settled = "settled",
+}
+
 const prisma = new PrismaClient();
 export const userPlugin = new Elysia().group("/user", (app) =>
   app
@@ -67,6 +73,8 @@ export const userPlugin = new Elysia().group("/user", (app) =>
 
           const limit = query.limit ? parseInt(query.limit) : null;
 
+          const statusFilter = query.status;
+
           let bills = await prisma.bill.findMany({
             where: {
               members: {
@@ -74,6 +82,15 @@ export const userPlugin = new Elysia().group("/user", (app) =>
                   userId: user.user.id,
                 },
               },
+
+              ...(statusFilter && {
+                status:
+                  statusFilter === "open"
+                    ? "OPEN"
+                    : statusFilter === "settled"
+                      ? "SETTLED"
+                      : "CLOSED",
+              }),
             },
             include: {
               owner: true,
@@ -117,43 +134,12 @@ export const userPlugin = new Elysia().group("/user", (app) =>
         }
       },
       {
-        // response: {
-        //   200: t.Object({
-        //     status: t.Boolean(),
-        //     data: t.Array(
-        //       t.Object({
-        //         id: t.Number(),
-        //         title: t.String(),
-        //         slug: t.String(),
-        //         description: t.String(),
-        //         totalAmount: t.Number(),
-        //         currentAmount: t.Number(),
-        //         createdAt: t.String(),
-        //         updatedAt: t.String(),
-        //         currency: t.String(),
-        //         ownerId: t.Number(),
-        //         members: t.Array(t.Object({ userId: t.Number() })),
-        //       }),
-        //     ),
-        //   }),
-        //   400: t.Object({
-        //     status: t.Boolean(),
-        //     message: t.String(),
-        //   }),
-        //   401: t.Object({
-        //     status: t.Boolean(),
-        //     message: t.String(),
-        //   }),
-        //   500: t.Object({
-        //     status: t.Boolean(),
-        //     message: t.String(),
-        //   }),
-        // },
         cookie: t.Cookie({
           access_token: t.String(),
         }),
         query: t.Object({
           limit: t.Optional(t.String()),
+          status: t.Optional(t.Enum(BillStatus)),
         }),
         detail: {
           tags: ["User"],
@@ -185,17 +171,7 @@ export const userPlugin = new Elysia().group("/user", (app) =>
             });
           }
 
-          const ownedActiveBills = await prisma.bill.findMany({
-            where: {
-              ownerId: user.user.id,
-              status: {
-                in: ["OPEN"],
-              },
-            },
-            include: { members: true },
-          });
-
-          const memberOfActiveBills = await prisma.bill.findMany({
+          const allActiveBills = await prisma.bill.findMany({
             where: {
               members: {
                 some: {
@@ -208,8 +184,6 @@ export const userPlugin = new Elysia().group("/user", (app) =>
             },
             include: { members: true },
           });
-
-          const allActiveBills = [...ownedActiveBills, ...memberOfActiveBills];
 
           return { status: true, data: allActiveBills };
         } catch (e) {

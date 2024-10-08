@@ -150,8 +150,8 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
           cookie.access_token.path = "/";
           cookie.refresh_token.path = "/";
 
-          cookie.access_token.domain = Environments.DOMAIN;
-          cookie.refresh_token.domain = Environments.DOMAIN;
+          // cookie.access_token.domain = Environments.DOMAIN;
+          // cookie.refresh_token.domain = Environments.DOMAIN;
 
           cookie.access_token.sameSite = "none";
           cookie.refresh_token.sameSite = "none";

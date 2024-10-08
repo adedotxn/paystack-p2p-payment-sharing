@@ -27,7 +27,9 @@ import { QueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 
-export function InviteMemberDialog(props: { unassignedAmount?: number }) {
+export default function InviteMemberDialog(props: {
+  unassignedAmount?: number;
+}) {
   const [open, setOpen] = React.useState(false);
 
   function onSuccess() {

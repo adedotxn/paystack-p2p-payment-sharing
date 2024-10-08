@@ -8,10 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useLoaderData } from "react-router-dom";
 import dayjs from "dayjs";
 import localizedFormat from "dayjs/plugin/localizedFormat";
-import { InviteMemberDialog } from "@/components/bills/invite-member-dialog";
+import InviteMemberDialog from "@/components/bills/invite-member-dialog";
 import PaymentButton from "@/components/bills/payment-button";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import SettleBillDialog from "@/components/bills/settle-bill-dialog";
 
 dayjs.extend(localizedFormat);
 
@@ -293,19 +294,21 @@ export default function BillDetailPage() {
                 unassignedAmount={billDetailss.unassignedAmount}
               />
 
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  if (billDetailss.totalAmount !== billDetailss.currentAmount) {
+              {billDetailss.totalAmount !== billDetailss.currentAmount ? (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() =>
                     toast.error(
                       "Please settle all payments attempting to settle the bill",
-                    );
+                    )
                   }
-                }}
-              >
-                Settle Bill
-              </Button>
+                >
+                  Settle Bill
+                </Button>
+              ) : (
+                <SettleBillDialog billId={billDetailss.id} />
+              )}
             </CardContent>
           </Card>
 

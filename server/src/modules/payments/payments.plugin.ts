@@ -184,7 +184,6 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
               });
 
               if (updatedBill.currentAmount >= updatedBill.totalAmount) {
-                // Update the bill status to "CLOSED"
                 await prisma.bill.update({
                   where: { id: bill.id },
                   data: { status: "CLOSED" },
@@ -220,7 +219,6 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
       "/settle-bill/:billId",
       async ({ cookie, params, error, body }) => {
         const access_token = cookie.access_token.value;
-
         try {
           const bill = await prisma.bill.findUnique({
             where: { id: params.billId },
@@ -239,7 +237,8 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
           if (bill.ownerId !== user?.user.id) {
             return error(401, {
               status: false,
-              message: "Unauthorized. You are not the creator of this bill",
+              message:
+                "Unauthorized. You are not the creator of this bill. Contact them to settle the bill",
             });
           }
 
@@ -266,7 +265,8 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
           });
 
           const transferRecipientsResponse = await res.json();
-          if (!transferRecipientsResponse.status) {
+
+          if (transferRecipientsResponse.status === false) {
             return error(400, {
               status: false,
               message: transferRecipientsResponse.message,
@@ -280,28 +280,36 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
             const recipient_code =
               transferRecipientsResponse.data.recipient_code;
 
-            const transferResponse = await fetch(
-              `https://api.paystack.co/transfer`,
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${Environments.PAYSTACK_SECRET_KEY}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  source: "balance",
-                  reason: "Bill payment",
-                  amount: bill.totalAmount,
-                  recipient: recipient_code,
-                }),
+            const response = await fetch(`https://api.paystack.co/transfer`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${Environments.PAYSTACK_SECRET_KEY}`,
+                "Content-Type": "application/json",
               },
-            );
-          }
+              body: JSON.stringify({
+                source: "balance",
+                reason: "Bill payment",
+                amount: bill.totalAmount,
+                recipient: recipient_code,
+              }),
+            });
 
-          await prisma.bill.update({
-            where: { id: params.billId },
-            data: { status: "CLOSED" },
-          });
+            const transferResponse = await response.json();
+
+            console.log({ transferResponse });
+
+            if (!transferResponse.status) {
+              return error(400, {
+                status: false,
+                message: transferResponse.message,
+              });
+            }
+
+            await prisma.bill.update({
+              where: { id: params.billId },
+              data: { status: "SETTLED" },
+            });
+          }
 
           return {
             status: true,

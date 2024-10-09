@@ -50,59 +50,15 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
             error(404, "User not found");
           }
 
-          const res = await fetch("https://api.paystack.co/page", {
-            method: "POST",
-            credentials: "include",
-            body: JSON.stringify({
-              name: body.name,
-              amount: body.amount,
-              description: body.description,
-            }),
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${Environments.PAYSTACK_SECRET_KEY}`,
-            },
-          });
-
-          const paystackPageResponse = (await res.json()) as {
-            status: boolean;
-            message: string;
-            data: {
-              name: string;
-              description: string;
-              amount: number;
-              split_code: string;
-              integration: number;
-              domain: string;
-              slug: string;
-              currency: string;
-              type: string;
-              collect_phone: boolean;
-              active: boolean;
-              published: boolean;
-              migrate: boolean;
-              id: number;
-              createdAt: string;
-              updatedAt: string;
-            };
-          };
-
-          if (!paystackPageResponse.status) {
-            return error(400, {
-              status: paystackPageResponse.status,
-              message: paystackPageResponse.message,
-            });
-          }
-
           const createdBill = await prisma.bill.create({
             data: {
-              title: paystackPageResponse.data.name,
-              slug: paystackPageResponse.data.slug,
-              description: paystackPageResponse.data.description,
+              title: body.name,
+              // slug: body.slug,
+              description: body.description,
               currentAmount: 0,
-              totalAmount: paystackPageResponse.data.amount,
+              totalAmount: body.amount,
               status: "OPEN",
-              currency: paystackPageResponse.data.currency,
+              currency: "NGN",
               owner: {
                 connect: { id: billCreator?.id },
               },

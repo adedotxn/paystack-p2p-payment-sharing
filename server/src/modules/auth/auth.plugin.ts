@@ -153,8 +153,8 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
           // cookie.access_token.domain = Environments.DOMAIN;
           // cookie.refresh_token.domain = Environments.DOMAIN;
 
-          cookie.access_token.sameSite = "none";
-          cookie.refresh_token.sameSite = "none";
+          cookie.access_token.sameSite = "lax";
+          cookie.refresh_token.sameSite = "lax";
 
           return { user: { name: google_user.name, email: google_user.email } };
         } catch (e) {

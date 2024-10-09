@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { Environments } from "@/utils/config/enviroments.config";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { PYS_AT } from "@/utils/constants";
 
 export default function PaymentButton(props: {
   amount: number;
@@ -17,9 +18,9 @@ export default function PaymentButton(props: {
         `${Environments.API_URL}/payment/verify/${props.billId}`,
         {
           method: "PATCH",
-          credentials: "include",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
           },
           body: JSON.stringify({
             paystackRef,

@@ -39,6 +39,7 @@ import { QueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getFormattedDate } from "@/utils/getFormattedDate";
 import { Environments } from "@/utils/config/enviroments.config";
+import { PYS_AT } from "@/utils/constants";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -126,9 +127,9 @@ function CreateBillForm(props: { onSuccess: () => void }) {
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const response = await fetch(`${Environments.API_URL}/bill`, {
         method: "POST",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
         },
         body: JSON.stringify(values),
       });

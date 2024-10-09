@@ -16,8 +16,8 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
           `&redirect_uri=${Environments.GOOGLE_REDIRECT_URI}` +
           `&response_type=code` +
           `&scope=https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email` +
-          `&access_type=offline` +
-          `&prompt=consent`;
+          `&access_type=offline`;
+        +`&prompt=consent`;
         return { redirect: authUrl };
       },
       {
@@ -28,7 +28,7 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
     )
     .get(
       "/google/callback",
-      async ({ query, error, cookie }) => {
+      async ({ query, error }) => {
         const { code } = query;
 
         const body = {
@@ -135,28 +135,7 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
 
           console.log("User Info:", google_user);
 
-          cookie.access_token.value = access_token;
-          cookie.refresh_token.value = refresh_token;
-
-          cookie.access_token.httpOnly = true;
-          cookie.refresh_token.httpOnly = true;
-
-          cookie.access_token.maxAge = expires_in;
-          cookie.refresh_token.maxAge = 60 * 60 * 24 * 30; // 30 days
-
-          cookie.access_token.secure = true;
-          cookie.refresh_token.secure = true;
-
-          cookie.access_token.path = "/";
-          cookie.refresh_token.path = "/";
-
-          // cookie.access_token.domain = Environments.DOMAIN;
-          // cookie.refresh_token.domain = Environments.DOMAIN;
-
-          cookie.access_token.sameSite = "lax";
-          cookie.refresh_token.sameSite = "lax";
-
-          return { user: { name: google_user.name, email: google_user.email } };
+          return { access_token, user: google_user };
         } catch (e) {
           console.error("Error:", e);
           if (e instanceof Error) {
@@ -172,24 +151,30 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
     )
     .post(
       "/refresh-token",
-      async ({ cookie, error }) => {
-        const refresh_token = cookie.refresh_token.value;
-        const expired_access_token = cookie.access_token.value;
-
-        if (!refresh_token) {
-          return error(401, "Refresh token not found");
-        }
+      async ({ error, headers }) => {
+        const authHeader = headers.authorization;
+        const tokenParts = authHeader.split(" ");
+        const expired_access_token = tokenParts[1];
 
         try {
           const user = await prisma.userVerification.findUnique({
-            where: { accessToken: expired_access_token }, // Adjust if needed to find by refresh token
-            select: {
-              userId: true,
-            },
+            where: { accessToken: expired_access_token },
           });
 
-          if (!user || !user.userId) {
-            error(401, "User not found");
+          if (!user) {
+            return error(401, {
+              status: false,
+              message: "Invalid or expired access token",
+            });
+          }
+
+          const refresh_token = user.refreshToken; // Get the stored refresh token
+
+          if (!refresh_token) {
+            return error(401, {
+              status: false,
+              message: "Refresh token not found",
+            });
           }
 
           const body = {
@@ -227,13 +212,6 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
             },
           });
 
-          // Update the access token cookie
-          cookie.access_token.value = access_token;
-          cookie.access_token.httpOnly = true;
-          cookie.access_token.maxAge = expires_in;
-          cookie.access_token.secure = true;
-          cookie.access_token.path = "/";
-
           return { success: true, message: "Token refreshed" };
         } catch (e) {
           console.error("Error:", e);
@@ -243,6 +221,9 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
         }
       },
       {
+        headers: t.Object({
+          authorization: t.String(),
+        }),
         detail: {
           tags: ["Auth"],
         },

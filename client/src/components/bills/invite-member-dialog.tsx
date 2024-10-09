@@ -27,6 +27,7 @@ import { QueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 import { Environments } from "@/utils/config/enviroments.config";
+import { PYS_AT } from "@/utils/constants";
 
 export default function InviteMemberDialog(props: {
   unassignedAmount?: number;
@@ -91,9 +92,9 @@ function InviteMemberForm(props: {
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const response = await fetch(`${Environments.API_URL}/bill/invite`, {
         method: "POST",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
         },
         body: JSON.stringify(values),
       });

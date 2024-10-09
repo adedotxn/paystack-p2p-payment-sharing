@@ -7,8 +7,10 @@ import BillsPage from "./pages/bill/root.tsx";
 import BillDetailPage from "./pages/bill/details.tsx";
 import { BillDetailsLoader } from "./pages/bill/details.loader.ts";
 import { QueryClient } from "@tanstack/react-query";
+import { PYS_AT } from "./utils/constants.ts";
 
 const queryClient = new QueryClient();
+const access_token = localStorage.getItem(PYS_AT);
 
 const router = createBrowserRouter([
   {
@@ -30,7 +32,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/bills/:billId",
-    loader: BillDetailsLoader(queryClient),
+    loader: BillDetailsLoader(queryClient, access_token),
     element: <BillDetailPage />,
   },
 ]);

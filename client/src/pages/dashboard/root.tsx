@@ -19,6 +19,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { Link } from "react-router-dom";
 import NotificationsPopover from "@/components/dashboard/notifications-popover";
 import { Environments } from "@/utils/config/enviroments.config";
+import { PYS_AT } from "@/utils/constants";
 
 dayjs.extend(relativeTime);
 
@@ -37,7 +38,9 @@ export default function Dashboard() {
     queryKey: ["profile"],
     queryFn: async () => {
       const response = await fetch(`${Environments.API_URL}/user/profile`, {
-        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
+        },
       });
 
       if (!response.ok) {
@@ -80,7 +83,9 @@ export default function Dashboard() {
     queryFn: async () => {
       try {
         const resp = await fetch(`${Environments.API_URL}/user/bills?limit=3`, {
-          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
+          },
         });
 
         const data = await resp.json();
@@ -102,7 +107,9 @@ export default function Dashboard() {
     queryFn: async () => {
       try {
         const resp = await fetch(`${Environments.API_URL}/user/bills/active`, {
-          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
+          },
         });
 
         const data = await resp.json();

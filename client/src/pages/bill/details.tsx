@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import SettleBillDialog from "@/components/bills/settle-bill-dialog";
 import { Environments } from "@/utils/config/enviroments.config";
 import { billDetailsQuery } from "./details.loader";
+import { PYS_AT } from "@/utils/constants";
 
 dayjs.extend(localizedFormat);
 
@@ -33,7 +34,9 @@ export default function BillDetailPage() {
     queryKey: ["profile"],
     queryFn: async () => {
       const response = await fetch(`${Environments.API_URL}/user/profile`, {
-        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
+        },
       });
 
       if (!response.ok) {
@@ -113,7 +116,7 @@ export default function BillDetailPage() {
 
   const params = useParams();
   const { data: billDetails } = useQuery({
-    ...billDetailsQuery(params.billId),
+    ...billDetailsQuery(localStorage.getItem(PYS_AT), params.billId),
     initialData: loaderData,
   });
 

@@ -20,12 +20,7 @@ const app = new Elysia()
       },
     }),
   )
-  .use(
-    cors({
-      origin: true,
-      credentials: true,
-    }),
-  )
+  .use(cors())
   .use(authPlugin)
   .use(userPlugin)
   .use(billsPlugin)

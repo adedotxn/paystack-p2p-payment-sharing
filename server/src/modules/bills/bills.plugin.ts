@@ -11,13 +11,32 @@ enum InvitationStatus {
 const prisma = new PrismaClient();
 export const billsPlugin = new Elysia().group("/bill", (app) =>
   app
+    .guard({
+      beforeHandle({ headers, error }) {
+        const authHeader = headers.authorization;
+
+        if (!authHeader) {
+          return error(401, {
+            status: false,
+            message: "User not authenticated",
+          });
+        }
+
+        const tokenParts = authHeader.split(" ");
+        if (tokenParts[0] !== "Bearer" || !tokenParts[1]) {
+          return error(401, {
+            status: false,
+            message: "Invalid Authorization format",
+          });
+        }
+      },
+    })
     .post(
       "/",
-      async ({ body, cookie, error }) => {
-        // CREATE A BILL
-        if (!cookie.access_token.value) {
-          error(401);
-        }
+      async ({ body, headers, error }) => {
+        const authHeader = headers.authorization;
+        const tokenParts = authHeader.split(" ");
+        const access_token = tokenParts[1];
 
         if (body.assignedCreatorAmount < 100) {
           return error(400, {
@@ -43,7 +62,7 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
 
         try {
           const billCreator = await prisma.userVerification.findUnique({
-            where: { accessToken: cookie.access_token.value },
+            where: { accessToken: access_token },
           });
 
           if (!billCreator) {
@@ -98,6 +117,9 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
         }
       },
       {
+        headers: t.Object({
+          authorization: t.String(),
+        }),
         body: t.Object({
           name: t.String(),
           amount: t.Number(),
@@ -166,15 +188,9 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
     )
     .post(
       "/invite",
-      async ({ body, error, cookie }) => {
+      async ({ body, error }) => {
         // SEND BILL INVITE TO ANOTHER USER
         const { email, billId, assignedAmount } = body;
-        if (!cookie.access_token.value) {
-          error(401, {
-            status: false,
-            message: "Unauthorized",
-          });
-        }
 
         try {
           const invitedUserExists = await prisma.user.findUnique({
@@ -248,7 +264,7 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
     )
     .patch(
       "/invite/accept",
-      async ({ body, error, cookie }) => {
+      async ({ body, error }) => {
         /**
       ACCEPT BILL INVITATION
 
@@ -329,7 +345,7 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
     )
     .patch(
       "/invite/reject",
-      async ({ body, cookie, error }) => {
+      async ({ body, error }) => {
         const { invitationId } = body;
         try {
           const invitation = await prisma.invitation.findUnique({
@@ -378,20 +394,14 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
     )
     .get(
       "/invites",
-      async ({ cookie, error, query }) => {
+      async ({ headers, error, query }) => {
         // GET INVITES FOR A USER
 
-        const access_token = cookie.access_token.value;
-
-        if (!access_token) {
-          return error(401, {
-            status: false,
-            message: "User not authenticated",
-          });
-        }
+        const authHeader = headers.authorization;
+        const tokenParts = authHeader.split(" ");
+        const access_token = tokenParts[1];
 
         try {
-          // Fetch user based on access token (assuming you manage auth in cookies)
           const user = await prisma.userVerification.findUnique({
             where: { accessToken: access_token },
             include: { user: true },
@@ -444,6 +454,9 @@ export const billsPlugin = new Elysia().group("/bill", (app) =>
         }
       },
       {
+        headers: t.Object({
+          authorization: t.String(),
+        }),
         query: t.Object({
           status: t.Optional(t.Enum(InvitationStatus)),
         }),

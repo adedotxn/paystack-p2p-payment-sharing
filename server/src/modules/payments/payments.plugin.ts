@@ -5,16 +5,34 @@ import { Environments } from "../../config/environment.config";
 const prisma = new PrismaClient();
 export const paymentsPlugin = new Elysia().group("/payment", (app) =>
   app
-    .post(
-      "/:billId",
-      async ({ cookie, body, params, error }) => {
-        const access_token = cookie.access_token.value;
-        if (!access_token) {
-          error(401, { status: false, message: "User not authenticated" });
+    .guard({
+      beforeHandle({ headers, error }) {
+        const authHeader = headers.authorization;
+
+        if (!authHeader) {
+          return error(401, {
+            status: false,
+            message: "User not authenticated",
+          });
         }
 
+        const tokenParts = authHeader.split(" ");
+        if (tokenParts[0] !== "Bearer" || !tokenParts[1]) {
+          return error(401, {
+            status: false,
+            message: "Invalid Authorization format",
+          });
+        }
+      },
+    })
+    .post(
+      "/:billId",
+      async ({ headers, body, params, error }) => {
+        const authHeader = headers.authorization;
+        const tokenParts = authHeader.split(" ");
+        const access_token = tokenParts[1];
+
         try {
-          // Find user from access_token
           const user = await prisma.userVerification.findUnique({
             where: { accessToken: access_token },
             include: { user: true },
@@ -79,6 +97,9 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
         }
       },
       {
+        headers: t.Object({
+          authorization: t.String(),
+        }),
         body: t.Object({
           amount: t.Number(),
         }),
@@ -92,13 +113,12 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
     )
     .patch(
       "/verify/:billId",
-      async ({ cookie, params, error, body }) => {
+      async ({ params, error, body, headers }) => {
         const { paystackRef } = body;
 
-        const access_token = cookie.access_token.value;
-        if (!access_token) {
-          error(401, { status: false, message: "User not authenticated" });
-        }
+        const authHeader = headers.authorization;
+        const tokenParts = authHeader.split(" ");
+        const access_token = tokenParts[1];
 
         try {
           const user = await prisma.userVerification.findUnique({
@@ -210,6 +230,9 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
         params: t.Object({
           billId: t.Number(),
         }),
+        headers: t.Object({
+          authorization: t.String(),
+        }),
         detail: {
           tags: ["Payment"],
         },
@@ -217,8 +240,11 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
     )
     .patch(
       "/settle-bill/:billId",
-      async ({ cookie, params, error, body }) => {
-        const access_token = cookie.access_token.value;
+      async ({ headers, params, error, body }) => {
+        const authHeader = headers.authorization;
+        const tokenParts = authHeader.split(" ");
+        const access_token = tokenParts[1];
+
         try {
           const bill = await prisma.bill.findUnique({
             where: { id: params.billId },
@@ -325,6 +351,9 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
       {
         params: t.Object({
           billId: t.Number(),
+        }),
+        headers: t.Object({
+          authorization: t.String(),
         }),
         body: t.Object({
           recipient_name: t.String(),

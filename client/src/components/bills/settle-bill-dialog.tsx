@@ -44,6 +44,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Environments } from "@/utils/config/enviroments.config";
 import { useQueryClient } from "@tanstack/react-query";
+import { PYS_AT } from "@/utils/constants";
 
 const formSchema = z.object({
   recipient_account_number: z
@@ -96,9 +97,9 @@ export default function SettleBillDialog(props: { billId: number }) {
         `${Environments.API_URL}/payment/settle-bill/${props.billId}`,
         {
           method: "PATCH",
-          credentials: "include",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
           },
           body: JSON.stringify({
             ...values,

@@ -24,6 +24,7 @@ import { Link, Outlet } from "react-router-dom";
 import { Environments } from "@/utils/config/enviroments.config";
 import { useState } from "react";
 import { CreateBillDialog } from "@/components/bills/create-bill-dialog";
+import { PYS_AT } from "@/utils/constants";
 
 export default function BillsPage() {
   const [filter, setFilter] = useState("all");
@@ -144,7 +145,9 @@ export default function BillsPage() {
             ? `${Environments.API_URL}/user/bills`
             : `${Environments.API_URL}/user/bills?status=${filter}`;
         const resp = await fetch(url, {
-          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
+          },
         });
 
         const data = await resp.json();

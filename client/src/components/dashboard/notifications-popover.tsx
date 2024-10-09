@@ -14,6 +14,7 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PYS_AT } from "@/utils/constants";
 
 interface Invite {
   id: number;
@@ -41,7 +42,11 @@ export default function NotificationsPopover() {
     queryFn: async () => {
       const resp = await fetch(
         `${Environments.API_URL}/bill/invites?status=pending`,
-        { credentials: "include" },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
+          },
+        },
       );
       if (!resp.ok) throw new Error("Failed to fetch invites");
       return resp.json();
@@ -56,8 +61,10 @@ export default function NotificationsPopover() {
         `${Environments.API_URL}/bill/invite/accept`,
         {
           method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
+          },
           body: JSON.stringify({ invitationId }),
         },
       );
@@ -82,8 +89,10 @@ export default function NotificationsPopover() {
         `${Environments.API_URL}/bill/invite/reject`,
         {
           method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem(PYS_AT)}`,
+          },
           body: JSON.stringify({ invitationId }),
         },
       );

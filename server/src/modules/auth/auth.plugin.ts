@@ -16,9 +16,9 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
           `&redirect_uri=${Environments.GOOGLE_REDIRECT_URI}` +
           `&response_type=code` +
           `&scope=https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email` +
-          `&access_type=offline`;
-        // +
-        // `&prompt=consent`;
+          `&access_type=offline`
+         +
+         `&prompt=consent`;
         return { redirect: authUrl };
       },
       {

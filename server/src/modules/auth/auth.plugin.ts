@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import { Environments } from "../../config/environment.config";
 import { PrismaClient } from "@prisma/client";
+import { authService } from "./auth.service";
 
 const prisma = new PrismaClient();
 
@@ -9,15 +10,15 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
     .get(
       "/google",
       ({ redirect }) => {
-        console.log(Environments.GOOGLE_REDIRECT_URI);
         const authUrl =
           `https://accounts.google.com/o/oauth2/v2/auth?` +
           `client_id=${Environments.GOOGLE_CLIENT_ID}` +
           `&redirect_uri=${Environments.GOOGLE_REDIRECT_URI}` +
           `&response_type=code` +
           `&scope=https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email` +
-          `&access_type=offline` +
-          `&prompt=consent`;
+          `&access_type=offline`;
+        // +
+        // `&prompt=consent`;
         return { redirect: authUrl };
       },
       {
@@ -60,12 +61,11 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
             return error(500, { status: false, message: tokenData.error });
           }
 
-          console.log("TokenData", tokenData);
-
           const { access_token, refresh_token, expires_in, id_token } =
             tokenData;
 
           if (!access_token || !refresh_token) {
+            console.error("Error with access/refresh token");
             return error(500, {
               status: false,
               message: "Problem during auth flow. Try ahaon",
@@ -89,51 +89,31 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
             email: string;
           };
 
-          console.log("Userinfo", google_user);
           if (!google_user) {
+            console.error("Error with google info retrieval");
+
             return error(400, {
               status: false,
               message: "Issue with Google User Info",
             });
           }
 
-          const existingUser = await prisma.user.findUnique({
-            where: { email: google_user.email },
-          });
+          const existingUser = await authService.findUserByEmail(
+            google_user.email,
+          );
 
           if (existingUser) {
-            await prisma.userVerification.update({
-              where: { googleId: google_user.id },
-              data: {
-                accessToken: access_token,
-                refreshToken: refresh_token,
-                expiresIn: expires_in,
-                updatedAt: new Date(),
-              },
+            await authService.updateUserVerification(google_user.id, {
+              accessToken: access_token,
+              refreshToken: refresh_token,
+              expiresIn: expires_in,
+              updatedAt: new Date(),
             });
           }
 
           if (!existingUser) {
-            await prisma.user.create({
-              data: {
-                email: google_user.email,
-                name: google_user.name,
-                picture: google_user.picture,
-
-                verification: {
-                  create: {
-                    googleId: google_user.id,
-                    accessToken: access_token,
-                    refreshToken: refresh_token,
-                    expiresIn: expires_in,
-                    idToken: String(id_token),
-                  },
-                },
-              },
-            });
+            await authService.createUser(google_user, tokenData);
           }
-
-          console.log("User Info:", google_user);
 
           return { access_token, user: google_user };
         } catch (e) {
@@ -150,16 +130,30 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
       },
     )
     .post(
-      "/refresh-token",
+      "/google/refresh-token",
       async ({ error, headers }) => {
         const authHeader = headers.authorization;
+
+        if (!authHeader) {
+          return error(401, {
+            status: false,
+            message: "Authorization header is missing",
+          });
+        }
+
         const tokenParts = authHeader.split(" ");
+        if (tokenParts[0] !== "Bearer" || !tokenParts[1]) {
+          return error(401, {
+            status: false,
+            message: "Invalid authorization format",
+          });
+        }
+
         const expired_access_token = tokenParts[1];
 
         try {
-          const user = await prisma.userVerification.findUnique({
-            where: { accessToken: expired_access_token },
-          });
+          const user =
+            await authService.findUserVerificationByToken(expired_access_token);
 
           if (!user) {
             return error(401, {
@@ -180,7 +174,7 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
           const body = {
             client_id: Environments.GOOGLE_CLIENT_ID!,
             client_secret: Environments.GOOGLE_CLIENT_SECRET!,
-            refresh_token: refresh_token!,
+            refresh_token: refresh_token,
             grant_type: "refresh_token",
           };
 
@@ -204,17 +198,10 @@ export const authPlugin = new Elysia().group("/auth", (app) =>
 
           const { access_token, expires_in } = tokenData;
 
-          await prisma.userVerification.update({
-            where: { userId: user?.userId },
-            data: {
-              accessToken: access_token,
-              updatedAt: new Date(),
-            },
-          });
+          await authService.updateAccessToken(user.userId, access_token);
 
-          return { success: true, message: "Token refreshed" };
+          return { success: true, message: "Token refreshed", access_token };
         } catch (e) {
-          console.error("Error:", e);
           if (e instanceof Error) {
             return error(500, e.message);
           }

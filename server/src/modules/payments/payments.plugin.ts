@@ -1,11 +1,13 @@
 import { Elysia, t } from "elysia";
-import { PrismaClient } from "@prisma/client";
 import { Environments } from "../../config/environment.config";
+import { paymentService } from "./payments.service";
 
-const prisma = new PrismaClient();
 export const paymentsPlugin = new Elysia().group("/payment", (app) =>
   app
     .guard({
+      headers: t.Object({
+        authorization: t.String(),
+      }),
       beforeHandle({ headers, error }) {
         const authHeader = headers.authorization;
 
@@ -25,114 +27,24 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
         }
       },
     })
-    .post(
-      "/:billId",
-      async ({ headers, body, params, error }) => {
-        const authHeader = headers.authorization;
-        const tokenParts = authHeader.split(" ");
-        const access_token = tokenParts[1];
-
-        try {
-          const user = await prisma.userVerification.findUnique({
-            where: { accessToken: access_token },
-            include: { user: true },
-          });
-
-          if (!user) {
-            return error(404, { status: false, message: "User not found" });
-          }
-
-          // Fetch BillMember to ensure user is part of the bill
-          const billMember = await prisma.billMember.findFirst({
-            where: { userId: user.user.id, billId: params.billId },
-          });
-
-          if (!billMember) {
-            return error(403, {
-              status: false,
-              message: "You are not part of this bill",
-            });
-          }
-
-          // Paystack charge API
-          const res = await fetch(
-            "https://api.paystack.co/transaction/initialize",
-            {
-              method: "POST",
-              body: JSON.stringify({
-                email: user.user.email,
-                amount: body.amount,
-              }),
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${Environments.PAYSTACK_SECRET_KEY}`,
-              },
-            },
-          );
-
-          const paystackResponse = await res.json();
-          if (!paystackResponse.status) {
-            return error(400, {
-              status: false,
-              message: paystackResponse.message,
-            });
-          }
-
-          const payment = await prisma.payment.create({
-            data: {
-              amount: body.amount,
-              status: "PENDING",
-              paystackRef: paystackResponse.data.reference,
-              userId: user.user.id,
-              billId: params.billId,
-              billMemberId: billMember.id,
-            },
-          });
-
-          return { status: true, message: "Payment initiated", data: payment };
-        } catch (e) {
-          if (e instanceof Error) {
-            return error(400, { status: false, message: e.message });
-          }
-        }
-      },
-      {
-        headers: t.Object({
-          authorization: t.String(),
-        }),
-        body: t.Object({
-          amount: t.Number(),
-        }),
-        params: t.Object({
-          billId: t.Number(),
-        }),
-        detail: {
-          tags: ["Payment"],
-        },
-      },
-    )
     .patch(
       "/verify/:billId",
       async ({ params, error, body, headers }) => {
         const { paystackRef } = body;
 
         const authHeader = headers.authorization;
-        const tokenParts = authHeader.split(" ");
-        const access_token = tokenParts[1];
 
         try {
-          const user = await prisma.userVerification.findUnique({
-            where: { accessToken: access_token },
-            include: { user: true },
-          });
+          const user = await paymentService.findUserByAccessToken(authHeader);
 
           if (!user) {
             return error(404, { status: false, message: "User not found" });
           }
 
-          const billMember = await prisma.billMember.findFirst({
-            where: { userId: user.user.id, billId: params.billId },
-          });
+          const billMember = await paymentService.findBillMember(
+            user.user.id,
+            params.billId,
+          );
 
           if (!billMember) {
             return error(403, {
@@ -159,7 +71,6 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
           );
 
           const paystackResponse = await res.json();
-          console.log("verify pstackresp", paystackResponse);
           if (!paystackResponse.status) {
             return error(400, {
               status: false,
@@ -167,47 +78,35 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
             });
           }
 
-          const payment = await prisma.payment.create({
-            data: {
-              amount: paystackResponse.data.amount / 100,
-              status:
-                paystackResponse.data.status === "success"
-                  ? "SUCCESSFUL"
-                  : "FAILED",
-              paystackRef: paystackResponse.data.reference,
-              userId: user.user.id,
-              billId: params.billId,
-              billMemberId: billMember.id,
-              updatedAt: paystackResponse.data.paid_at,
-            },
+          const payment = await paymentService.createPayment({
+            amount: paystackResponse.data.amount / 100,
+            status:
+              paystackResponse.data.status === "success"
+                ? "SUCCESSFUL"
+                : "FAILED",
+            paystackRef: paystackResponse.data.reference,
+            userId: user.user.id,
+            billId: params.billId,
+            billMemberId: billMember.id,
+            updatedAt: paystackResponse.data.paid_at,
           });
 
           if (billMember) {
-            await prisma.billMember.update({
-              where: { id: billMember.id },
-              data: { paidAmount: billMember.paidAmount + payment.amount },
-            });
+            await paymentService.updateBillMember(
+              billMember.id,
+              billMember.paidAmount + payment.amount,
+            );
 
-            const bill = await prisma.bill.findUnique({
-              where: { id: billMember.billId },
-            });
+            const bill = await paymentService.findBillById(billMember.billId);
 
             if (bill) {
-              const updatedBill = await prisma.bill.update({
-                where: { id: bill.id },
-                data: { currentAmount: bill.currentAmount + payment.amount },
-                select: {
-                  currentAmount: true,
-                  totalAmount: true,
-                  status: true,
-                },
-              });
+              const updatedBill = await paymentService.updateBill(
+                bill.id,
+                bill.currentAmount + payment.amount,
+              );
 
               if (updatedBill.currentAmount >= updatedBill.totalAmount) {
-                await prisma.bill.update({
-                  where: { id: bill.id },
-                  data: { status: "CLOSED" },
-                });
+                await paymentService.closeBill(bill.id);
               }
             }
           }
@@ -230,9 +129,6 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
         params: t.Object({
           billId: t.Number(),
         }),
-        headers: t.Object({
-          authorization: t.String(),
-        }),
         detail: {
           tags: ["Payment"],
         },
@@ -242,23 +138,15 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
       "/settle-bill/:billId",
       async ({ headers, params, error, body }) => {
         const authHeader = headers.authorization;
-        const tokenParts = authHeader.split(" ");
-        const access_token = tokenParts[1];
 
         try {
-          const bill = await prisma.bill.findUnique({
-            where: { id: params.billId },
-            include: { owner: true },
-          });
+          const bill = await paymentService.findBillById(params.billId);
 
           if (!bill) {
             return error(404, { status: false, message: "Bill not found" });
           }
 
-          const user = await prisma.userVerification.findUnique({
-            where: { accessToken: access_token },
-            include: { user: true },
-          });
+          const user = await paymentService.findUserByAccessToken(authHeader);
 
           if (bill.ownerId !== user?.user.id) {
             return error(401, {
@@ -285,7 +173,7 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
               type: "nuban", // For Nigerian bank accounts
               name: body.recipient_name, // Recipient's name
               account_number: body.recipient_account_number, // Recipient's account number
-              bank_code: body.recipient_bank_code, // Bank code (058 = GTBank for example)
+              bank_code: body.recipient_bank_code, // Bank code
               currency: "NGN", // Currency of the transfer
             }),
           });
@@ -322,8 +210,6 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
 
             const transferResponse = await response.json();
 
-            console.log({ transferResponse });
-
             if (!transferResponse.status) {
               return error(400, {
                 status: false,
@@ -331,10 +217,7 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
               });
             }
 
-            await prisma.bill.update({
-              where: { id: params.billId },
-              data: { status: "SETTLED" },
-            });
+            await paymentService.settleBill(params.billId);
           }
 
           return {
@@ -351,9 +234,6 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
       {
         params: t.Object({
           billId: t.Number(),
-        }),
-        headers: t.Object({
-          authorization: t.String(),
         }),
         body: t.Object({
           recipient_name: t.String(),

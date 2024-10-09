@@ -6,12 +6,14 @@ import { Environments } from "@/utils/config/enviroments.config";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PYS_AT } from "@/utils/constants";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function PaymentButton(props: {
   amount: number;
   email: string;
   billId: number;
 }) {
+  const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: async (paystackRef: string) => {
       const response = await fetch(
@@ -48,6 +50,14 @@ export default function PaymentButton(props: {
     onSuccess: (data: { status: boolean; data: [] }) => {
       if (data.status) {
         toast.success("Payment successfull");
+
+        queryClient.invalidateQueries({
+          queryKey: ["bills"],
+        });
+
+        queryClient.invalidateQueries({
+          queryKey: ["bill-detail", props.billId.toString()],
+        });
       }
     },
   });

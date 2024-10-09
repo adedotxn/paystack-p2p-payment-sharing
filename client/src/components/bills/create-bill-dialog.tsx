@@ -35,7 +35,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useMediaQuery } from "@/utils/useMediaQuery";
-import { QueryClient, useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getFormattedDate } from "@/utils/getFormattedDate";
 import { Environments } from "@/utils/config/enviroments.config";
@@ -69,7 +69,7 @@ export function CreateBillDialog() {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button className="w-full">
+          <Button className="w-fit">
             <Plus className="mr-2 h-4 w-4" /> Create New Bill
           </Button>
         </DialogTrigger>
@@ -121,7 +121,8 @@ function CreateBillForm(props: { onSuccess: () => void }) {
       assignedCreatorAmount: 100,
     },
   });
-  const queryClient = new QueryClient();
+
+  const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
@@ -155,8 +156,13 @@ function CreateBillForm(props: { onSuccess: () => void }) {
       if (data.status) {
         toast.success("Bill created successfully");
         queryClient.invalidateQueries({
+          queryKey: ["bills", { limit: 3 }],
+        });
+
+        queryClient.invalidateQueries({
           queryKey: ["bills"],
         });
+
         queryClient.invalidateQueries({
           queryKey: ["active-bills"],
         });

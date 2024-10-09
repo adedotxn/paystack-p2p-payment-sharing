@@ -1,50 +1,41 @@
 import { Elysia, t } from "elysia";
-import { Environments } from "../../config/environment.config";
 import { PrismaClient } from "@prisma/client";
-
-enum BillStatus {
-  open = "open",
-  closed = "closed",
-  settled = "settled",
-}
+import { BillStatus, userService } from "./user.service";
 
 const prisma = new PrismaClient();
+
 export const userPlugin = new Elysia().group("/user", (app) =>
   app
-    // .guard({
-    //   beforeHandle({ headers, error }) {
-    //     console.log("header", headers);
-    //     console.log("somethingggggg");
-    //     const authHeader = headers.authorization;
+    .guard({
+      headers: t.Object({
+        authorization: t.String(),
+      }),
+      async beforeHandle({ headers, error }) {
+        const authHeader = headers.authorization;
 
-    //     if (!authHeader) {
-    //       return error(401, {
-    //         status: false,
-    //         message: "User not authenticated",
-    //       });
-    //     }
+        if (!authHeader) {
+          return error(401, {
+            status: false,
+            message: "User not authenticated",
+          });
+        }
 
-    //     const tokenParts = authHeader.split(" ");
-    //     if (tokenParts[0] !== "Bearer" || !tokenParts[1]) {
-    //       return error(401, {
-    //         status: false,
-    //         message: "Invalid Authorization format",
-    //       });
-    //     }
-    //   },
-    // })
+        const tokenParts = authHeader.split(" ");
+        if (tokenParts[0] !== "Bearer" || !tokenParts[1]) {
+          return error(401, {
+            status: false,
+            message: "Invalid Authorization format",
+          });
+        }
+      },
+    })
     .get(
       "/profile",
       async ({ headers, error }) => {
         const authHeader = headers.authorization;
-        const tokenParts = authHeader.split(" ");
-        const access_token = tokenParts[1];
 
         try {
-          const user = await prisma.userVerification.findUnique({
-            where: { accessToken: access_token },
-            include: { user: true },
-          });
+          const user = await userService.getUserFromToken(authHeader);
 
           if (!user) {
             return error(404, { status: false, message: "User not found" });
@@ -58,9 +49,6 @@ export const userPlugin = new Elysia().group("/user", (app) =>
         }
       },
       {
-        headers: t.Object({
-          authorization: t.String(),
-        }),
         detail: {
           tags: ["User"],
         },
@@ -70,14 +58,9 @@ export const userPlugin = new Elysia().group("/user", (app) =>
       "/bills",
       async ({ error, query, headers }) => {
         const authHeader = headers.authorization;
-        const tokenParts = authHeader.split(" ");
-        const access_token = tokenParts[1];
 
         try {
-          const user = await prisma.userVerification.findUnique({
-            where: { accessToken: access_token },
-            include: { user: true },
-          });
+          const user = await userService.getUserFromToken(authHeader);
 
           if (!user) {
             return error(401, {
@@ -90,33 +73,10 @@ export const userPlugin = new Elysia().group("/user", (app) =>
 
           const statusFilter = query.status;
 
-          let bills = await prisma.bill.findMany({
-            where: {
-              members: {
-                some: {
-                  userId: user.user.id,
-                },
-              },
-
-              ...(statusFilter && {
-                status:
-                  statusFilter === "open"
-                    ? "OPEN"
-                    : statusFilter === "settled"
-                      ? "SETTLED"
-                      : "CLOSED",
-              }),
-            },
-            include: {
-              owner: true,
-              members: {
-                include: {
-                  user: true,
-                  payments: true,
-                },
-              },
-            },
-          });
+          let bills = await userService.getUserBills(
+            user.user.id,
+            statusFilter,
+          );
 
           bills.sort(
             (a, b) =>
@@ -149,9 +109,6 @@ export const userPlugin = new Elysia().group("/user", (app) =>
         }
       },
       {
-        headers: t.Object({
-          authorization: t.String(),
-        }),
         query: t.Object({
           limit: t.Optional(t.String()),
           status: t.Optional(t.Enum(BillStatus)),
@@ -165,14 +122,9 @@ export const userPlugin = new Elysia().group("/user", (app) =>
       "/bills/active",
       async ({ error, headers }) => {
         const authHeader = headers.authorization;
-        const tokenParts = authHeader.split(" ");
-        const access_token = tokenParts[1];
 
         try {
-          const user = await prisma.userVerification.findUnique({
-            where: { accessToken: access_token },
-            include: { user: true },
-          });
+          const user = await userService.getUserFromToken(authHeader);
 
           if (!user) {
             return error(401, {
@@ -181,19 +133,9 @@ export const userPlugin = new Elysia().group("/user", (app) =>
             });
           }
 
-          const allActiveBills = await prisma.bill.findMany({
-            where: {
-              members: {
-                some: {
-                  userId: user.user.id,
-                },
-              },
-              status: {
-                in: ["OPEN"],
-              },
-            },
-            include: { members: true },
-          });
+          const allActiveBills = await userService.getUserActiveBills(
+            user.user.id,
+          );
 
           return { status: true, data: allActiveBills };
         } catch (e) {
@@ -203,9 +145,50 @@ export const userPlugin = new Elysia().group("/user", (app) =>
         }
       },
       {
-        headers: t.Object({
-          authorization: t.String(),
-        }),
+        detail: {
+          tags: ["User"],
+        },
+      },
+    )
+    .get(
+      "/overview",
+      async ({ error, headers }) => {
+        const authHeader = headers.authorization;
+
+        try {
+          const user = await userService.getUserFromToken(authHeader!);
+
+          if (!user) {
+            return error(401, {
+              status: false,
+              message: "User not authenticated",
+            });
+          }
+
+          const paymentSummary = await userService.getUserPaymentSummary(
+            user.user.id,
+          );
+
+          const totalPaid = paymentSummary.totalPaid;
+          const totalAssigned = paymentSummary.totalAssigned;
+          const totalPaidAssigned = paymentSummary.totalPaidAssigned;
+
+          return {
+            status: true,
+            data: {
+              totalPaid,
+              totalAssigned,
+              totalPaidAssigned,
+              totalUnpaid: totalAssigned - totalPaidAssigned,
+            },
+          };
+        } catch (e) {
+          if (e instanceof Error) {
+            error(400, { status: false, message: e.message });
+          }
+        }
+      },
+      {
         detail: {
           tags: ["User"],
         },

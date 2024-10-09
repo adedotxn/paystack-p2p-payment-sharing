@@ -8,6 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Environments } from "@/utils/config/enviroments.config";
+import { useEffect } from "react";
+import { PYS_AT } from "@/utils/constants";
+import { toast } from "sonner";
 
 export default function Root() {
   async function handleGoogleAuth() {
@@ -22,6 +25,14 @@ export default function Root() {
       console.error(e);
     }
   }
+
+  useEffect(() => {
+    const token = localStorage.getItem(PYS_AT);
+    if (token) {
+      toast("You are already logged in. Redirecting to dashboard...");
+      window.location.href = "/dashboard";
+    }
+  }, []);
 
   return (
     <div className="container mx-auto flex items-center justify-center min-h-screen px-4">

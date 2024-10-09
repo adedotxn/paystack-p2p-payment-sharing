@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { QueryClient, useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 import { Environments } from "@/utils/config/enviroments.config";
@@ -86,7 +86,7 @@ function InviteMemberForm(props: {
       assignedAmount: 0,
     },
   });
-  const queryClient = new QueryClient();
+  const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
@@ -119,6 +119,10 @@ function InviteMemberForm(props: {
     onSuccess: (data: { status: boolean; data: [] }) => {
       if (data.status) {
         toast.success("Bill invite sent successfully");
+        queryClient.invalidateQueries({
+          queryKey: ["invites"],
+        });
+
         queryClient.invalidateQueries({
           queryKey: ["bills"],
         });

@@ -1,5 +1,4 @@
-import { ArrowLeft, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ArrowLeft } from "lucide-react";
 import {
   Select,
   SelectContent,

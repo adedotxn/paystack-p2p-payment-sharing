@@ -1,6 +1,9 @@
 # PayShare
 
 **PayShare** is a proof-of-concept web app for a service that offers bill sharing.
+- Web APP: [https://payyshare.vercel.app](https://payyshare.vercel.app)
+- API Documentation: [https://payshare.onrender.com/swagger](https://payshare.onrender.com/swagger)
+
 
 ## Problem Statement
 

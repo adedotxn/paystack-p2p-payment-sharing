@@ -1,28 +1,6 @@
-import React from "react";
-import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import {
   Form,
   FormControl,
@@ -32,9 +10,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useMediaQuery } from "@/utils/useMediaQuery";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getFormattedDate } from "@/utils/getFormattedDate";
@@ -57,61 +35,7 @@ const formSchema = z.object({
     .optional(),
 });
 
-export function CreateBillDialog() {
-  const [open, setOpen] = React.useState(false);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-
-  function onSuccess() {
-    setOpen(false);
-  }
-
-  if (isDesktop) {
-    return (
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button className="w-fit">
-            <Plus className="mr-2 h-4 w-4" /> Create New Bill
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Create New Bill</DialogTitle>
-            <DialogDescription>
-              Enter the details for your new bill. Click save when you're done.
-            </DialogDescription>
-          </DialogHeader>
-          <CreateBillForm onSuccess={onSuccess} />
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Create New Bill
-        </Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader className="text-left">
-          <DrawerTitle>Create New Bill</DrawerTitle>
-          <DrawerDescription>
-            Enter the details for your new bill. Click save when you're done.
-          </DrawerDescription>
-        </DrawerHeader>
-        <CreateBillForm onSuccess={onSuccess} />
-        <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  );
-}
-
-function CreateBillForm(props: { onSuccess: () => void }) {
+export default function CreateBillForm(props: { onSuccess: () => void }) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {

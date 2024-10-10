@@ -9,12 +9,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 import { MatchCurrency } from "@/utils/constants";
 
 export default function BillCard(props: { bill: FullBill }) {
+  const navigate = useNavigate();
   return (
     <Card key={props.bill.id}>
       <CardHeader>
@@ -70,10 +71,17 @@ export default function BillCard(props: { bill: FullBill }) {
         </div>
       </CardContent>
       <CardFooter>
-        <Button variant="outline" className="w-full">
-          <Link to={`/bills/${props.bill.id}`} className="flex">
-            View Details <ChevronRight className="ml-2 h-4 w-4" />
-          </Link>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => navigate(`/bills/${props.bill.id}`)}
+        >
+          <div className="flex items-center">
+            <span>View Details</span>
+            <span>
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </span>
+          </div>
         </Button>
       </CardFooter>
     </Card>

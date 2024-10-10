@@ -82,8 +82,6 @@ export default function PaymentButton(props: {
       redirecturl: string;
     };
 
-    console.log("response", res);
-
     if (res.message && res.reference) {
       mutation.mutate(res.reference);
     }
@@ -91,8 +89,6 @@ export default function PaymentButton(props: {
 
   // you can call this function anything
   const onClose = (response?: any) => {
-    // implementation for  whatever you want to do when the Paystack dialog closed.
-    console.log("closed");
     console.log("response closed", response);
   };
 

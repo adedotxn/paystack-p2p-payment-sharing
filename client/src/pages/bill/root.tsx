@@ -7,11 +7,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useEffect, useState } from "react";
-import { CreateBillDialog } from "@/components/bills/create-bill-dialog";
 import AllBillsContainer from "@/components/bills/all-bills-container";
 import { PYS_AT } from "@/utils/constants";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { CreateBillButton } from "@/components/bills/create-bill-button";
 
 export default function BillsPage() {
   const [filter, setFilter] = useState("all");
@@ -32,7 +32,7 @@ export default function BillsPage() {
       </Button>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">My Bills</h1>
-        <CreateBillDialog />
+        <CreateBillButton />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">

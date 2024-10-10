@@ -2,9 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Bell, Check, X } from "lucide-react";
 import { Environments } from "@/utils/config/enviroments.config";
-
 import { Button } from "@/components/ui/button";
-
 import {
   Popover,
   PopoverContent,
@@ -13,30 +11,14 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PYS_AT } from "@/utils/constants";
 import { useState } from "react";
-
-interface Invite {
-  id: number;
-  email: string;
-  billId: number;
-  status: string;
-  assignedAmount: number;
-  createdAt: string;
-  updatedAt: string;
-  bill: {
-    title: string;
-    slug: string;
-    status: string;
-    owner: {
-      name: string;
-    };
-  };
-}
+import { Separator } from "@/components/ui/separator";
+import type { Invites } from "./dashboard.types";
 
 export default function NotificationsMenubar() {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: invitesData } = useQuery<{ status: boolean; data: Invite[] }>({
+  const { data: invitesData } = useQuery<Invites>({
     queryKey: ["invites"],
     queryFn: async () => {
       const resp = await fetch(
@@ -128,7 +110,7 @@ export default function NotificationsMenubar() {
             {allInvites.length}
           </span>
         </div>
-        {/* <Separator className="mb-2" /> */}
+        <Separator className="mb-2" />
         <ScrollArea
           className={allInvites.length === 0 ? "h-[100px]" : "h-[300px]"}
         >

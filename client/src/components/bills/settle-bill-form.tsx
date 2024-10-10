@@ -1,27 +1,8 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import {
   Form,
   FormControl,
@@ -39,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useMediaQuery } from "@/utils/useMediaQuery";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Environments } from "@/utils/config/enviroments.config";
@@ -64,9 +44,10 @@ type Bank = {
   logo: string;
 };
 
-export default function SettleBillDialog(props: { billId: number }) {
-  const [open, setOpen] = useState(false);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+export default function SettleBillForm(props: {
+  billId: number;
+  onSuccess?: VoidFunction;
+}) {
   const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -134,8 +115,11 @@ export default function SettleBillDialog(props: { billId: number }) {
         queryClient.invalidateQueries({
           queryKey: ["bill-detail", props.billId.toString()],
         });
+
+        if (props.onSuccess) {
+          props.onSuccess();
+        }
       }
-      setOpen(false);
     },
   });
 
@@ -143,7 +127,7 @@ export default function SettleBillDialog(props: { billId: number }) {
     mutation.mutate(values);
   }
 
-  const SettleBillForm = () => (
+  return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <FormField
@@ -210,48 +194,5 @@ export default function SettleBillDialog(props: { billId: number }) {
         </Button>
       </form>
     </Form>
-  );
-
-  if (isDesktop) {
-    return (
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button className="w-full">Settle Bill</Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Settle Bill</DialogTitle>
-            <DialogDescription>
-              Enter the account details to settle the bill. Click submit when
-              you're done.
-            </DialogDescription>
-          </DialogHeader>
-          <SettleBillForm />
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        <Button className="w-full">Settle Bill</Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader className="text-left">
-          <DrawerTitle>Settle Bill</DrawerTitle>
-          <DrawerDescription>
-            Enter the account details to settle the bill. Click submit when
-            you're done.
-          </DrawerDescription>
-        </DrawerHeader>
-        <SettleBillForm />
-        <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
   );
 }

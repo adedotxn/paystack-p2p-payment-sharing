@@ -1,18 +1,7 @@
-import React from "react";
-import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -27,40 +16,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 import { Environments } from "@/utils/config/enviroments.config";
-import { PYS_AT } from "@/utils/constants";
-
-export default function InviteMemberDialog(props: {
-  unassignedAmount?: number;
-}) {
-  const [open, setOpen] = React.useState(false);
-
-  function onSuccess() {
-    setOpen(false);
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="w-full">
-          <Plus className="mr-2 h-4 w-4" /> Invite Member
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Invite a new member</DialogTitle>
-          <DialogDescription>
-            Enter the email address of the person you'd like to invite to this
-            bill and the amount you'd like to assign to them'.
-          </DialogDescription>
-        </DialogHeader>
-        <InviteMemberForm
-          onSuccess={onSuccess}
-          unassignedAmount={props.unassignedAmount}
-        />
-      </DialogContent>
-    </Dialog>
-  );
-}
+import { MatchCurrency, PYS_AT } from "@/utils/constants";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -72,7 +28,7 @@ const formSchema = z.object({
   }),
 });
 
-function InviteMemberForm(props: {
+export default function InviteMemberForm(props: {
   onSuccess: () => void;
   unassignedAmount?: number;
 }) {
@@ -185,10 +141,10 @@ function InviteMemberForm(props: {
                 Provide the amount to be assigned to this user for this bill
                 (minimum 100 Naira).{" "}
                 {props.unassignedAmount && props.unassignedAmount > 0 ? (
-                  <div>
+                  <div className="underline">
                     {" "}
-                    NB: This bill still has NGN {props.unassignedAmount}{" "}
-                    unassigned{" "}
+                    NB: This bill still has {MatchCurrency["NGN"]}
+                    {props.unassignedAmount.toLocaleString()} unassigned{" "}
                   </div>
                 ) : null}
               </FormDescription>

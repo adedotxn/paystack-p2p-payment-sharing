@@ -15,12 +15,13 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { Link } from "react-router-dom";
 import type { RecentBills } from "./dashboard.types";
+import { useNavigate } from "react-router-dom";
 
 dayjs.extend(relativeTime);
 
 export default function RecentBillsContainer() {
+  const navigate = useNavigate();
   const bills = useQuery<RecentBills>({
     queryKey: ["bills", { limit: 3 }],
     queryFn: async () => {
@@ -92,10 +93,17 @@ export default function RecentBillsContainer() {
                 </p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full">
-                  <Link to={`/bills/${bill.id}`} className="flex items-center">
-                    View Details <ChevronRight className="ml-2 h-4 w-4" />
-                  </Link>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate(`/bills/${bill.id}`)}
+                >
+                  <div className="flex items-center">
+                    <span>View Details</span>
+                    <span>
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </span>
+                  </div>
                 </Button>
               </CardFooter>
             </Card>

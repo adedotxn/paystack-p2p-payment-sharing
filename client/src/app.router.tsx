@@ -8,6 +8,9 @@ import BillDetailPage from "./pages/bill/details.tsx";
 import { BillDetailsLoader } from "./pages/bill/details.loader.ts";
 import { QueryClient } from "@tanstack/react-query";
 import { PYS_AT } from "./utils/constants.ts";
+import CreateBillPage from "./pages/create-bill.tsx";
+import SettleBillPage from "./pages/bill/settle-bill.tsx";
+import InviteToBillPage from "./pages/bill/invite.tsx";
 
 const queryClient = new QueryClient();
 const access_token = localStorage.getItem(PYS_AT);
@@ -34,6 +37,19 @@ const router = createBrowserRouter([
     path: "/bills/:billId",
     loader: BillDetailsLoader(queryClient, access_token),
     element: <BillDetailPage />,
+  },
+  {
+    path: "/bills/:billId/invite",
+    loader: BillDetailsLoader(queryClient, access_token),
+    element: <InviteToBillPage />,
+  },
+  {
+    path: "/bills/:billId/settle",
+    element: <SettleBillPage />,
+  },
+  {
+    path: "/create-bill",
+    element: <CreateBillPage />,
   },
 ]);
 

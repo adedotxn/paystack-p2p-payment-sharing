@@ -44,3 +44,23 @@ export type Profile = APIResponse<{
   createdAt: string;
   updatedAt: string;
 }>;
+
+export type Invites = APIResponse<
+  {
+    id: number;
+    email: string;
+    billId: number;
+    status: string;
+    assignedAmount: number;
+    createdAt: string;
+    updatedAt: string;
+    bill: {
+      title: string;
+      slug: string;
+      status: string;
+      owner: {
+        name: string;
+      };
+    };
+  }[]
+>;

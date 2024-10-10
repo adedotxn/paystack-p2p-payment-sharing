@@ -1,4 +1,3 @@
-import { DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,9 +37,6 @@ export default function Root() {
     <div className="container mx-auto flex items-center justify-center min-h-screen px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <DollarSign className="h-12 w-12 text-purple-600" />
-          </div>
           <CardTitle className="text-2xl font-bold text-center">
             Welcome to PayShare
           </CardTitle>

@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PYS_AT } from "@/utils/constants";
 import { Environments } from "@/utils/config/enviroments.config";
 import { useQuery } from "@tanstack/react-query";
-import SettleBillDialog from "@/components/bills/settle-bill-dialog";
-import InviteMemberDialog from "@/components/bills/invite-member-dialog";
 import { Button } from "@/components/ui/button";
 import type { Profile } from "../dashboard/dashboard.types";
 import PaymentButton from "./payment-button";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function BillDetailActionsCard(props: { detail: BillDetail }) {
   const profile = useQuery<Profile>({
@@ -32,6 +32,18 @@ export default function BillDetailActionsCard(props: { detail: BillDetail }) {
   const currentBillMember = props.detail.members.find(
     (member) => member.userId === user?.id,
   );
+
+  const params = useParams();
+  const navigate = useNavigate();
+
+  function navigateToInvitePage() {
+    navigate(`/bills/${params.billId}/invite`);
+  }
+
+  function navigateToSettlementPage() {
+    navigate(`/bills/${params.billId}/settle`);
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -50,14 +62,21 @@ export default function BillDetailActionsCard(props: { detail: BillDetail }) {
             ) : null}
           </div>
         )}
-        <InviteMemberDialog unassignedAmount={props.detail.unassignedAmount} />
+
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={navigateToInvitePage}
+        >
+          <Plus className="mr-2 h-4 w-4" /> Invite Member
+        </Button>
 
         {props.detail.totalAmount !== props.detail.currentAmount ? (
           <Button
             variant="outline"
             className="w-full"
             onClick={() =>
-              toast.error(
+              toast.info(
                 "Please complete all payments before attempting to settle the bill",
               )
             }
@@ -65,7 +84,9 @@ export default function BillDetailActionsCard(props: { detail: BillDetail }) {
             Settle Bill
           </Button>
         ) : (
-          <SettleBillDialog billId={props.detail.id} />
+          <Button className="w-full" onClick={navigateToSettlementPage}>
+            Settle Bill
+          </Button>
         )}
       </CardContent>
     </Card>

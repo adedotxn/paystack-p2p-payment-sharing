@@ -180,6 +180,8 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
 
           const transferRecipientsResponse = await res.json();
 
+          console.log("TRF RCPTS:", transferRecipientsResponse);
+
           if (transferRecipientsResponse.status === false) {
             return error(400, {
               status: false,
@@ -209,6 +211,8 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
             });
 
             const transferResponse = await response.json();
+
+            console.log("TRF:", transferResponse);
 
             if (!transferResponse.status) {
               return error(400, {
@@ -243,6 +247,46 @@ export const paymentsPlugin = new Elysia().group("/payment", (app) =>
         detail: {
           tags: ["Payment"],
         },
+      },
+    )
+    .get(
+      "/banks",
+      async ({ query, error }) => {
+        const cursor = query.cursor || "";
+        const perPage = 20;
+
+        try {
+          const response = await fetch(
+            `https://api.paystack.co/bank?country=nigeria&use_cursor=true&perPage=${perPage}&next=${cursor}`,
+          );
+
+          const data = await response.json();
+
+          if (!data.status) {
+            return error(400, {
+              status: false,
+              message: data.message,
+            });
+          }
+
+          console.log("data", data);
+          return {
+            data: data.data,
+            meta: data.meta,
+          };
+        } catch (e) {
+          if (e instanceof Error) {
+            return error(500, { status: false, message: e.message });
+          }
+        }
+      },
+      {
+        detail: {
+          tags: ["Payment"],
+        },
+        query: t.Object({
+          cursor: t.Optional(t.String()),
+        }),
       },
     ),
 );

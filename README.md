@@ -4,7 +4,7 @@
 
 ## Problem Statement
 
-University students often face the inconvenience of splitting bills when buying food together, especially during late-night study sessions at places like the Student Union Building (SUB). Multiple individual transfers lead to unnecessary transaction charges. PayShare aims to streamline this process and reduce associated costs.
+University students often face the inconvenience of splitting bills when buying food together, especially during late-night study/work sessions. Multiple individual transfers lead to unnecessary transaction charges. PayShare aims to streamline this process and reduce associated costs.
 
 ## Solution
 
